@@ -1,30 +1,29 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
 import { RegisterDeviceDto } from './dto/register-device.dto';
+import { NotificationsRepository } from './notifications.repository';
 
 @Injectable()
 export class NotificationsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private readonly notificationsRepository: NotificationsRepository,
+  ) {}
 
-  private readonly currentUserId = BigInt(1);
-
-  async registerDevice(dto: RegisterDeviceDto) {
-    const existing = await this.prisma.userDevice.findUnique({
-      where: { deviceToken: dto.deviceToken },
-    });
+  async registerDevice(userId: string, dto: RegisterDeviceDto) {
+    const currentUserId = BigInt(userId);
+    const existing = await this.notificationsRepository.findDeviceByToken(
+      dto.deviceToken,
+    );
 
     if (!existing) {
-      await this.prisma.userDevice.create({
-        data: {
-          userId: this.currentUserId,
-          deviceToken: dto.deviceToken,
-        },
-      });
-    } else if (existing.userId !== this.currentUserId) {
-      await this.prisma.userDevice.update({
-        where: { deviceToken: dto.deviceToken },
-        data: { userId: this.currentUserId },
-      });
+      await this.notificationsRepository.createDevice(
+        currentUserId,
+        dto.deviceToken,
+      );
+    } else if (existing.userId !== currentUserId) {
+      await this.notificationsRepository.updateDeviceOwner(
+        dto.deviceToken,
+        currentUserId,
+      );
     }
 
     return {

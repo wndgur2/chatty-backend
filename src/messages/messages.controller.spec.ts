@@ -9,6 +9,7 @@ const mockMessagesService = {
 
 describe('MessagesController', () => {
   let controller: MessagesController;
+  const authUser = { userId: '1' };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -31,8 +32,10 @@ describe('MessagesController', () => {
     const result = [{ id: 1, content: 'Hello' }];
     mockMessagesService.findHistory.mockResolvedValue(result);
 
-    expect(await controller.findHistory(1, 10, 0)).toBe(result);
-    expect(mockMessagesService.findHistory).toHaveBeenCalledWith(1, 10, 0);
+    expect(
+      await controller.findHistory(authUser, 1, { limit: 10, offset: 0 }),
+    ).toBe(result);
+    expect(mockMessagesService.findHistory).toHaveBeenCalledWith('1', 1, 10, 0);
   });
 
   it('should trigger AI message processing', async () => {
@@ -40,7 +43,7 @@ describe('MessagesController', () => {
     const result = { messageId: 103, status: 'processing' };
     mockMessagesService.sendToAI.mockResolvedValue(result);
 
-    expect(await controller.sendToAI(1, dto)).toBe(result);
-    expect(mockMessagesService.sendToAI).toHaveBeenCalledWith(1, dto);
+    expect(await controller.sendToAI(authUser, 1, dto)).toBe(result);
+    expect(mockMessagesService.sendToAI).toHaveBeenCalledWith('1', 1, dto);
   });
 });

@@ -1,21 +1,19 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ChatroomsService } from './chatrooms.service';
-import { PrismaService } from '../prisma/prisma.service';
+import { ChatroomsRepository } from './chatrooms.repository';
+import { StorageService } from '../infrastructure/storage/storage.service';
 
-const mockPrismaService = {
-  chatroom: {
-    findMany: jest.fn(),
-    findFirst: jest.fn(),
-    create: jest.fn(),
-    update: jest.fn(),
-    delete: jest.fn(),
-  },
-  message: {
-    findMany: jest.fn(),
-    createMany: jest.fn(),
-  },
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/require-await, @typescript-eslint/no-unsafe-call
-  $transaction: jest.fn(async (cb: any) => cb(mockPrismaService)),
+const mockChatroomsRepository = {
+  findManyByUser: jest.fn(),
+  findByIdAndUser: jest.fn(),
+  create: jest.fn(),
+  update: jest.fn(),
+  delete: jest.fn(),
+  transaction: jest.fn(),
+};
+
+const mockStorageService = {
+  saveProfileImage: jest.fn(),
 };
 
 describe('ChatroomsService', () => {
@@ -25,8 +23,8 @@ describe('ChatroomsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ChatroomsService,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        { provide: PrismaService, useValue: mockPrismaService },
+        { provide: ChatroomsRepository, useValue: mockChatroomsRepository },
+        { provide: StorageService, useValue: mockStorageService },
       ],
     }).compile();
 
@@ -42,15 +40,11 @@ describe('ChatroomsService', () => {
   });
 
   it('should find all chatrooms', async () => {
-    const mockResult = [{ id: 1n, name: 'Chat' }];
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    (mockPrismaService.chatroom.findMany as jest.Mock).mockResolvedValue(
-      mockResult,
-    );
+    const mockResult = [{ id: 1n, userId: 1n, name: 'Chat' }];
+    mockChatroomsRepository.findManyByUser.mockResolvedValue(mockResult);
 
-    const result = await service.findAll();
-    expect(result).toEqual(mockResult);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    expect(mockPrismaService.chatroom.findMany).toHaveBeenCalled();
+    const result = await service.findAll('1');
+    expect(result).toEqual([{ id: '1', userId: '1', name: 'Chat' }]);
+    expect(mockChatroomsRepository.findManyByUser).toHaveBeenCalledWith(1n);
   });
 });

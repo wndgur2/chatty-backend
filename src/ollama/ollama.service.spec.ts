@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Test, TestingModule } from '@nestjs/testing';
+import { ConfigService } from '@nestjs/config';
 import { OllamaService } from './ollama.service';
 import { Ollama } from 'ollama';
 
@@ -8,7 +9,15 @@ describe('OllamaService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [OllamaService],
+      providers: [
+        OllamaService,
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn((key: string, fallback: string) => fallback),
+          },
+        },
+      ],
     }).compile();
 
     service = module.get<OllamaService>(OllamaService);

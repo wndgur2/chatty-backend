@@ -24,13 +24,18 @@ Chatty is a real-time, AI-based chat application backend built with **NestJS**, 
    Ensure you have a `.env` file in the root directory containing your Database URL.
    ```env
    DATABASE_URL="mysql://<user>:<password>@localhost:3306/chatty"
+   JWT_SECRET="replace-with-a-strong-secret"
+   JWT_EXPIRES_IN="7d"
+   OLLAMA_HOST="http://127.0.0.1:11434"
+   OLLAMA_CHAT_MODEL="hf.co/soob3123/amoral-gemma3-12B-v2-qat-Q4_0-GGUF:Q4_0"
+   OLLAMA_EVAL_MODEL="qwen2.5:1.5b"
    ```
 
 3. **Database Setup**
-   Run the Prisma migrations to synchronize your MySQL database and generate the Prisma Client bindings:
+   Run Prisma migrations and generate Prisma Client bindings:
    ```bash
+   npm run prisma:migrate:dev
    npx prisma generate
-   npx prisma db push
    ```
 
 4. **Running the Application**
@@ -49,6 +54,7 @@ Chatty is a real-time, AI-based chat application backend built with **NestJS**, 
 - **Chatrooms (CRUD)**: Create, View, Update, and Delete customized DB Chatrooms. Native file uploading handles saving profile images seamlessly locally into `src/assets` and hosts them via `.baseUrl`.
 - **Messages Management**: Send user messages to the AI and read chat histories attached securely to specific Chatroom constraints.
 - **Robust Testing**: Comprehensive Unit tests and End-to-End (E2E) Integration Tests spanning live Database evaluations (`/test/chatrooms.e2e-spec.ts` & `/test/messages.e2e-spec.ts`).
+- **JWT Authentication**: `POST /api/auth/login` issues bearer tokens used by protected API routes.
 
 ## Running Tests
 

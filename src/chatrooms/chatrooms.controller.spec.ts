@@ -16,6 +16,11 @@ const mockChatroomsService = {
 
 describe('ChatroomsController', () => {
   let controller: ChatroomsController;
+  const authUser = { userId: '1' };
+  const mockRequest = {
+    protocol: 'http',
+    get: () => 'localhost:3000',
+  } as unknown as Request;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -43,8 +48,8 @@ describe('ChatroomsController', () => {
     const result = [{ id: 1, name: 'General Chat' }];
     mockChatroomsService.findAll.mockResolvedValue(result);
 
-    expect(await controller.findAll()).toBe(result);
-    expect(mockChatroomsService.findAll).toHaveBeenCalled();
+    expect(await controller.findAll(authUser)).toBe(result);
+    expect(mockChatroomsService.findAll).toHaveBeenCalledWith(authUser.userId);
   });
 
   it('should create a chatroom', async () => {
@@ -65,20 +70,20 @@ describe('ChatroomsController', () => {
     const result = { id: 2, ...dto };
     mockChatroomsService.create.mockResolvedValue(result);
 
-    const mockRequest = {
-      protocol: 'http',
-      get: () => 'localhost:3000',
-    } as unknown as Request;
-
-    expect(await controller.create(dto, file, mockRequest)).toBe(result);
+    expect(await controller.create(authUser, dto, file, mockRequest)).toBe(
+      result,
+    );
   });
 
   it('should return a single chatroom by id', async () => {
     const result = { id: 1, name: 'General Chat' };
     mockChatroomsService.findOne.mockResolvedValue(result);
 
-    expect(await controller.findOne(1)).toBe(result);
-    expect(mockChatroomsService.findOne).toHaveBeenCalledWith(1);
+    expect(await controller.findOne(authUser, 1)).toBe(result);
+    expect(mockChatroomsService.findOne).toHaveBeenCalledWith(
+      authUser.userId,
+      1,
+    );
   });
 
   it('should update a chatroom', async () => {
@@ -99,34 +104,37 @@ describe('ChatroomsController', () => {
     const result = { id: 1, ...dto };
     mockChatroomsService.update.mockResolvedValue(result);
 
-    const mockRequest = {
-      protocol: 'http',
-      get: () => 'localhost:3000',
-    } as unknown as Request;
-
-    expect(await controller.update(1, dto, file, mockRequest)).toBe(result);
+    expect(await controller.update(authUser, 1, dto, file, mockRequest)).toBe(
+      result,
+    );
   });
 
   it('should delete a chatroom', async () => {
     mockChatroomsService.remove.mockResolvedValue(undefined);
 
-    await controller.remove(1);
-    expect(mockChatroomsService.remove).toHaveBeenCalledWith(1);
+    await controller.remove(authUser, 1);
+    expect(mockChatroomsService.remove).toHaveBeenCalledWith(
+      authUser.userId,
+      1,
+    );
   });
 
   it('should clone a chatroom', async () => {
     const result = { id: 3, name: 'Clone' };
     mockChatroomsService.clone.mockResolvedValue(result);
 
-    expect(await controller.clone(1)).toBe(result);
-    expect(mockChatroomsService.clone).toHaveBeenCalledWith(1);
+    expect(await controller.clone(authUser, 1)).toBe(result);
+    expect(mockChatroomsService.clone).toHaveBeenCalledWith(authUser.userId, 1);
   });
 
   it('should branch a chatroom', async () => {
     const result = { id: 4, name: 'Branch' };
     mockChatroomsService.branch.mockResolvedValue(result);
 
-    expect(await controller.branch(1)).toBe(result);
-    expect(mockChatroomsService.branch).toHaveBeenCalledWith(1);
+    expect(await controller.branch(authUser, 1)).toBe(result);
+    expect(mockChatroomsService.branch).toHaveBeenCalledWith(
+      authUser.userId,
+      1,
+    );
   });
 });

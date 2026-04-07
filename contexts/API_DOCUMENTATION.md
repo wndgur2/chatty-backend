@@ -4,6 +4,44 @@ This document outlines the RESTful API endpoints for the "Chatty" application ba
 
 ---
 
+## 0. Authentication
+
+All `/api/**` endpoints require a bearer token except:
+- `GET /`
+- `POST /api/auth/login`
+
+### 0.1 Login (Issue JWT)
+
+- **Method:** `POST`
+- **URL:** `/api/auth/login`
+- **Parameters:** None
+- **Request Body:**
+  ```json
+  {
+    "username": "my-username"
+  }
+  ```
+- **Response:** `201 Created`
+- **Example:**
+  ```json
+  {
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "user": {
+      "id": "1",
+      "username": "my-username"
+    }
+  }
+  ```
+
+### 0.2 Public Root Endpoint
+
+- **Method:** `GET`
+- **URL:** `/`
+- **Response:** `200 OK`
+- **Example:** `"Hello World!"`
+
+---
+
 ## 1. Chatroom Management
 
 ### 1.1 Retrieve All Chatrooms
@@ -12,6 +50,7 @@ Retrieve a list of chatrooms for the authenticated user.
 
 - **Method:** `GET`
 - **URL:** `/api/chatrooms`
+- **Headers:** `Authorization: Bearer <accessToken>`
 - **Parameters:** None
 - **Request Body:** None
 - **Response:** `200 OK`
@@ -19,7 +58,8 @@ Retrieve a list of chatrooms for the authenticated user.
   ```json
   [
     {
-      "id": 1,
+      "id": "1",
+      "userId": "1",
       "name": "General Chat",
       "basePrompt": "You are a helpful assistant.",
       "profileImageUrl": "https://example.com/ai-1.png",
@@ -34,6 +74,7 @@ Create a new chatroom.
 
 - **Method:** `POST`
 - **URL:** `/api/chatrooms`
+- **Headers:** `Authorization: Bearer <accessToken>`
 - **Parameters:** None
 - **Request Body:** `multipart/form-data`
   - `name` (string): The name of the chatroom.
@@ -43,7 +84,8 @@ Create a new chatroom.
 - **Example:**
   ```json
   {
-    "id": 2,
+    "id": "2",
+    "userId": "1",
     "name": "Project Discussion",
     "basePrompt": "You are a strict project manager AI.",
     "profileImageUrl": "https://example.com/manager.png",
@@ -57,6 +99,7 @@ Retrieve details of a specific chatroom by ID.
 
 - **Method:** `GET`
 - **URL:** `/api/chatrooms/{chatroomId}`
+- **Headers:** `Authorization: Bearer <accessToken>`
 - **Parameters:**
   - `chatroomId` (path parameter): The ID of the chatroom.
 - **Request Body:** None
@@ -64,7 +107,8 @@ Retrieve details of a specific chatroom by ID.
 - **Example:**
   ```json
   {
-    "id": 2,
+    "id": "2",
+    "userId": "1",
     "name": "Project Discussion",
     "basePrompt": "You are a strict project manager AI.",
     "profileImageUrl": "https://example.com/manager.png",
@@ -78,6 +122,7 @@ Update a chatroom's configuration such as its base prompt or AI profile image.
 
 - **Method:** `PATCH`
 - **URL:** `/api/chatrooms/{chatroomId}`
+- **Headers:** `Authorization: Bearer <accessToken>`
 - **Parameters:**
   - `chatroomId` (path parameter): The ID of the chatroom.
 - **Request Body:** `multipart/form-data`
@@ -87,7 +132,8 @@ Update a chatroom's configuration such as its base prompt or AI profile image.
 - **Example:**
   ```json
   {
-    "id": 2,
+    "id": "2",
+    "userId": "1",
     "name": "Project Discussion",
     "basePrompt": "You are a friendly project manager AI.",
     "profileImageUrl": "https://example.com/friendly-manager.png",
@@ -101,10 +147,11 @@ Delete an existing chatroom.
 
 - **Method:** `DELETE`
 - **URL:** `/api/chatrooms/{chatroomId}`
+- **Headers:** `Authorization: Bearer <accessToken>`
 - **Parameters:**
   - `chatroomId` (path parameter): The ID of the chatroom.
 - **Request Body:** None
-- **Response:** `204 No Content`
+- **Response:** `200 OK`
 - **Example:** _(Empty Response)_
 
 ---
@@ -117,6 +164,7 @@ Create a new chatroom from an existing one, copying ONLY the configuration (prom
 
 - **Method:** `POST`
 - **URL:** `/api/chatrooms/{chatroomId}/clone`
+- **Headers:** `Authorization: Bearer <accessToken>`
 - **Parameters:**
   - `chatroomId` (path parameter): The ID of the source chatroom.
 - **Request Body:** None
@@ -124,7 +172,8 @@ Create a new chatroom from an existing one, copying ONLY the configuration (prom
 - **Example:**
   ```json
   {
-    "id": 3,
+    "id": "3",
+    "userId": "1",
     "name": "General Chat (Clone)",
     "basePrompt": "You are a helpful assistant.",
     "profileImageUrl": "https://example.com/ai-1.png",
@@ -138,6 +187,7 @@ Create a new chatroom from an existing one, copying BOTH the configuration and t
 
 - **Method:** `POST`
 - **URL:** `/api/chatrooms/{chatroomId}/branch`
+- **Headers:** `Authorization: Bearer <accessToken>`
 - **Parameters:**
   - `chatroomId` (path parameter): The ID of the source chatroom.
 - **Request Body:** None
@@ -145,7 +195,8 @@ Create a new chatroom from an existing one, copying BOTH the configuration and t
 - **Example:**
   ```json
   {
-    "id": 4,
+    "id": "4",
+    "userId": "1",
     "name": "General Chat (Branch)",
     "basePrompt": "You are a helpful assistant.",
     "profileImageUrl": "https://example.com/ai-1.png",
@@ -163,6 +214,7 @@ Retrieve the message history for a specific chatroom.
 
 - **Method:** `GET`
 - **URL:** `/api/chatrooms/{chatroomId}/messages`
+- **Headers:** `Authorization: Bearer <accessToken>`
 - **Parameters:**
   - `chatroomId` (path parameter): The ID of the chatroom.
   - `limit` (query parameter, optional): Number of messages to retrieve.
@@ -173,16 +225,18 @@ Retrieve the message history for a specific chatroom.
   ```json
   [
     {
-      "id": 101,
+      "id": "101",
+      "chatroomId": "2",
       "sender": "user",
       "content": "Hello, AI!",
-      "timestamp": "2026-04-05T10:25:00Z"
+      "createdAt": "2026-04-05T10:25:00Z"
     },
     {
-      "id": 102,
+      "id": "102",
+      "chatroomId": "2",
       "sender": "ai",
       "content": "Hello! How can I help you today?",
-      "timestamp": "2026-04-05T10:25:05Z"
+      "createdAt": "2026-04-05T10:25:05Z"
     }
   ]
   ```
@@ -193,6 +247,7 @@ Send a message from the user to the AI. _(Note: Responses are streamed via WebSo
 
 - **Method:** `POST`
 - **URL:** `/api/chatrooms/{chatroomId}/messages`
+- **Headers:** `Authorization: Bearer <accessToken>`
 - **Parameters:**
   - `chatroomId` (path parameter): The ID of the chatroom.
 - **Request Body:**
@@ -205,7 +260,7 @@ Send a message from the user to the AI. _(Note: Responses are streamed via WebSo
 - **Example:**
   ```json
   {
-    "messageId": 103,
+    "messageId": "103",
     "status": "processing"
   }
   ```
@@ -220,6 +275,7 @@ Register a user's device for receiving FCM push notifications (for voluntary AI 
 
 - **Method:** `POST`
 - **URL:** `/api/notifications/register`
+- **Headers:** `Authorization: Bearer <accessToken>`
 - **Parameters:** None
 - **Request Body:**
   ```json

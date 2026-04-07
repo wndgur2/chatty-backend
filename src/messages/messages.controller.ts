@@ -11,6 +11,9 @@ import {
 } from '@nestjs/common';
 import { MessagesService } from './messages.service';
 import { SendMessageDto } from './dto/send-message.dto';
+import { FindHistoryQueryDto } from './dto/find-history-query.dto';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import type { AuthUser } from '../auth/types/auth-user.type';
 
 @Controller('api/chatrooms/:chatroomId/messages')
 export class MessagesController {
@@ -18,25 +21,29 @@ export class MessagesController {
 
   @Get()
   async findHistory(
+    @CurrentUser() user: AuthUser,
     @Param('chatroomId', ParseIntPipe) chatroomId: number,
-    @Query('limit') limit?: number,
-    @Query('offset') offset?: number,
+    @Query() query: FindHistoryQueryDto,
   ) {
-    // If the query params are defined, convert to numbers, but here we can just pass them.
-    // It's usually better to use ParseIntPipe with validation.
     return this.messagesService.findHistory(
+      user.userId,
       chatroomId,
-      limit !== undefined ? parseInt(limit.toString(), 10) : undefined,
-      offset !== undefined ? parseInt(offset.toString(), 10) : undefined,
+      query.limit,
+      query.offset,
     );
   }
 
   @Post()
   @HttpCode(HttpStatus.ACCEPTED)
   async sendToAI(
+    @CurrentUser() user: AuthUser,
     @Param('chatroomId', ParseIntPipe) chatroomId: number,
     @Body() sendMessageDto: SendMessageDto,
   ) {
-    return this.messagesService.sendToAI(chatroomId, sendMessageDto);
+    return this.messagesService.sendToAI(
+      user.userId,
+      chatroomId,
+      sendMessageDto,
+    );
   }
 }

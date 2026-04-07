@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Ollama } from 'ollama';
 
 export interface ChatMessage {
@@ -11,11 +12,24 @@ export class OllamaService {
   private readonly logger = new Logger(OllamaService.name);
   public ollama: Ollama;
 
-  private chatModel = 'hf.co/soob3123/amoral-gemma3-12B-v2-qat-Q4_0-GGUF:Q4_0';
-  private evalModel = 'qwen2.5:1.5b';
+  private readonly chatModel: string;
+  private readonly evalModel: string;
 
-  constructor() {
-    this.ollama = new Ollama({ host: 'http://127.0.0.1:11434' });
+  constructor(private readonly configService: ConfigService) {
+    this.chatModel = this.configService.get<string>(
+      'OLLAMA_CHAT_MODEL',
+      'hf.co/soob3123/amoral-gemma3-12B-v2-qat-Q4_0-GGUF:Q4_0',
+    );
+    this.evalModel = this.configService.get<string>(
+      'OLLAMA_EVAL_MODEL',
+      'qwen2.5:1.5b',
+    );
+    this.ollama = new Ollama({
+      host: this.configService.get<string>(
+        'OLLAMA_HOST',
+        'http://127.0.0.1:11434',
+      ),
+    });
   }
 
   async evaluateToAnswer(

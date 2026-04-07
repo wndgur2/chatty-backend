@@ -1,18 +1,17 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-argument */
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from './../src/app.module';
+import { HttpExceptionFilter } from '../src/common/filters/http-exception.filter';
+import { BigIntSerializerInterceptor } from '../src/common/interceptors/bigint-serializer.interceptor';
 import { PrismaService } from '../src/prisma/prisma.service';
-
-(BigInt.prototype as any).toJSON = function () {
-  return Number(this);
-};
 
 describe('ChatroomsController (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
-  let createdChatroomId: number;
+  let createdChatroomId: string;
+  let accessToken: string;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -20,16 +19,24 @@ describe('ChatroomsController (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
+    app.useGlobalPipes(
+      new ValidationPipe({
+        transform: true,
+        whitelist: true,
+        forbidNonWhitelisted: true,
+      }),
+    );
+    app.useGlobalFilters(new HttpExceptionFilter());
+    app.useGlobalInterceptors(new BigIntSerializerInterceptor());
     await app.init();
 
     prisma = app.get(PrismaService);
 
-    const userOne = await prisma.user.findUnique({ where: { id: 1n } });
-    if (!userOne) {
-      await prisma.user.create({
-        data: { id: 1n, username: 'testuser_chatrooms' },
-      });
-    }
+    const loginRes = await request(app.getHttpServer())
+      .post('/api/auth/login')
+      .send({ username: 'testuser_chatrooms' })
+      .expect(201);
+    accessToken = loginRes.body.accessToken as string;
   });
 
   afterAll(async () => {
@@ -43,6 +50,7 @@ describe('ChatroomsController (e2e)', () => {
   it('/api/chatrooms (POST) - create a chatroom', async () => {
     const res = await request(app.getHttpServer())
       .post('/api/chatrooms')
+      .set('Authorization', `Bearer ${accessToken}`)
       .field('name', 'E2E Chatroom')
       .field('basePrompt', 'You are an e2e test bot.');
 
@@ -62,6 +70,7 @@ describe('ChatroomsController (e2e)', () => {
   it('/api/chatrooms (GET) - list chatrooms', async () => {
     const res = await request(app.getHttpServer())
       .get('/api/chatrooms')
+      .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
 
     expect(Array.isArray(res.body)).toBe(true);
@@ -72,6 +81,7 @@ describe('ChatroomsController (e2e)', () => {
 
   it('/api/chatrooms/:id (GET) - read one chatroom', async () => {
     const res = await request(app.getHttpServer())
+      .set('Authorization', `Bearer ${accessToken}`)
       .get(`/api/chatrooms/${createdChatroomId}`)
       .expect(200);
 
@@ -82,6 +92,7 @@ describe('ChatroomsController (e2e)', () => {
   it('/api/chatrooms/:id (PATCH) - update chatroom', async () => {
     const res = await request(app.getHttpServer())
       .patch(`/api/chatrooms/${createdChatroomId}`)
+      .set('Authorization', `Bearer ${accessToken}`)
       .field('name', 'Updated E2E Chatroom')
       .expect(200);
 
@@ -96,6 +107,7 @@ describe('ChatroomsController (e2e)', () => {
   it('/api/chatrooms/:id (DELETE) - delete chatroom', async () => {
     await request(app.getHttpServer())
       .delete(`/api/chatrooms/${createdChatroomId}`)
+      .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
 
     const dbRecord = await prisma.chatroom.findUnique({

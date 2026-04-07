@@ -1,13 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotificationsService } from './notifications.service';
-import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsRepository } from './notifications.repository';
 
-const mockPrismaService = {
-  userDevice: {
-    findUnique: jest.fn(),
-    create: jest.fn(),
-    update: jest.fn(),
-  },
+const mockNotificationsRepository = {
+  findDeviceByToken: jest.fn(),
+  createDevice: jest.fn(),
+  updateDeviceOwner: jest.fn(),
 };
 
 describe('NotificationsService', () => {
@@ -17,7 +15,10 @@ describe('NotificationsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         NotificationsService,
-        { provide: PrismaService, useValue: mockPrismaService },
+        {
+          provide: NotificationsRepository,
+          useValue: mockNotificationsRepository,
+        },
       ],
     }).compile();
 
@@ -33,32 +34,32 @@ describe('NotificationsService', () => {
   });
 
   it('should register a new device token', async () => {
-    mockPrismaService.userDevice.findUnique.mockResolvedValue(null);
-    mockPrismaService.userDevice.create.mockResolvedValue({ id: 1n });
+    mockNotificationsRepository.findDeviceByToken.mockResolvedValue(null);
+    mockNotificationsRepository.createDevice.mockResolvedValue({ id: 1n });
 
-    const result = await service.registerDevice({ deviceToken: 'dummy' });
+    const result = await service.registerDevice('1', { deviceToken: 'dummy' });
     expect(result).toEqual({
       status: 'success',
       message: 'FCM token registered successfully.',
     });
-    expect(mockPrismaService.userDevice.create).toHaveBeenCalled();
+    expect(mockNotificationsRepository.createDevice).toHaveBeenCalled();
   });
 
   it('should update an existing device token if userId does not match', async () => {
-    mockPrismaService.userDevice.findUnique.mockResolvedValue({
+    mockNotificationsRepository.findDeviceByToken.mockResolvedValue({
       id: 1n,
       userId: 99n,
     });
-    mockPrismaService.userDevice.update.mockResolvedValue({
+    mockNotificationsRepository.updateDeviceOwner.mockResolvedValue({
       id: 1n,
       userId: 1n,
     });
 
-    const result = await service.registerDevice({ deviceToken: 'dummy' });
+    const result = await service.registerDevice('1', { deviceToken: 'dummy' });
     expect(result).toEqual({
       status: 'success',
       message: 'FCM token registered successfully.',
     });
-    expect(mockPrismaService.userDevice.update).toHaveBeenCalled();
+    expect(mockNotificationsRepository.updateDeviceOwner).toHaveBeenCalled();
   });
 });

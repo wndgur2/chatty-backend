@@ -1,18 +1,18 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-argument */
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from './../src/app.module';
+import { HttpExceptionFilter } from '../src/common/filters/http-exception.filter';
+import { BigIntSerializerInterceptor } from '../src/common/interceptors/bigint-serializer.interceptor';
 import { PrismaService } from '../src/prisma/prisma.service';
-
-(BigInt.prototype as any).toJSON = function () {
-  return Number(this);
-};
 
 describe('MessagesController (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let createdChatroomId: number;
+  let accessToken: string;
+  let authUserId: bigint;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -20,22 +20,30 @@ describe('MessagesController (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
+    app.useGlobalPipes(
+      new ValidationPipe({
+        transform: true,
+        whitelist: true,
+        forbidNonWhitelisted: true,
+      }),
+    );
+    app.useGlobalFilters(new HttpExceptionFilter());
+    app.useGlobalInterceptors(new BigIntSerializerInterceptor());
     await app.init();
 
     prisma = app.get(PrismaService);
 
-    // Ensure User exists
-    const userOne = await prisma.user.findUnique({ where: { id: 1n } });
-    if (!userOne) {
-      await prisma.user.create({
-        data: { id: 1n, username: 'testuser_messages' },
-      });
-    }
+    const loginRes = await request(app.getHttpServer())
+      .post('/api/auth/login')
+      .send({ username: 'testuser_messages' })
+      .expect(201);
+    accessToken = loginRes.body.accessToken as string;
+    authUserId = BigInt(loginRes.body.user.id as string);
 
     // Ensure a chatroom exists for this test
     const chatroom = await prisma.chatroom.create({
       data: {
-        userId: 1n,
+        userId: authUserId,
         name: 'Message E2E Chatroom',
       },
     });
@@ -54,6 +62,7 @@ describe('MessagesController (e2e)', () => {
   it('/api/chatrooms/:id/messages (POST) - send message (C)', async () => {
     const res = await request(app.getHttpServer())
       .post(`/api/chatrooms/${createdChatroomId}/messages`)
+      .set('Authorization', `Bearer ${accessToken}`)
       .send({ content: 'Hello AI' })
       .expect(202);
 
@@ -72,6 +81,7 @@ describe('MessagesController (e2e)', () => {
   it('/api/chatrooms/:id/messages (GET) - retrieve history (R)', async () => {
     const res = await request(app.getHttpServer())
       .get(`/api/chatrooms/${createdChatroomId}/messages`)
+      .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
 
     expect(Array.isArray(res.body)).toBe(true);
