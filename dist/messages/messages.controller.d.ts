@@ -5,10 +5,10 @@ export declare class MessagesController {
     constructor(messagesService: MessagesService);
     findHistory(chatroomId: number, limit?: number, offset?: number): Promise<{
         id: bigint;
-        createdAt: Date;
         chatroomId: bigint;
         sender: import(".prisma/client").$Enums.Sender;
         content: string;
+        createdAt: Date;
     }[]>;
     sendToAI(chatroomId: number, sendMessageDto: SendMessageDto): Promise<{
         messageId: number;

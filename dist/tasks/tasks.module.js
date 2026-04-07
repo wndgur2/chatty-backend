@@ -6,22 +6,19 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.MessagesModule = void 0;
+exports.TasksModule = void 0;
 const common_1 = require("@nestjs/common");
-const messages_service_1 = require("./messages.service");
-const messages_controller_1 = require("./messages.controller");
-const messages_gateway_1 = require("./messages.gateway");
+const tasks_service_1 = require("./tasks.service");
 const prisma_module_1 = require("../prisma/prisma.module");
 const ollama_module_1 = require("../ollama/ollama.module");
-let MessagesModule = class MessagesModule {
+const messages_module_1 = require("../messages/messages.module");
+let TasksModule = class TasksModule {
 };
-exports.MessagesModule = MessagesModule;
-exports.MessagesModule = MessagesModule = __decorate([
+exports.TasksModule = TasksModule;
+exports.TasksModule = TasksModule = __decorate([
     (0, common_1.Module)({
-        imports: [prisma_module_1.PrismaModule, ollama_module_1.OllamaModule],
-        providers: [messages_service_1.MessagesService, messages_gateway_1.MessagesGateway],
-        controllers: [messages_controller_1.MessagesController],
-        exports: [messages_service_1.MessagesService],
+        imports: [prisma_module_1.PrismaModule, ollama_module_1.OllamaModule, messages_module_1.MessagesModule],
+        providers: [tasks_service_1.TasksService],
     })
-], MessagesModule);
-//# sourceMappingURL=messages.module.js.map
+], TasksModule);
+//# sourceMappingURL=tasks.module.js.map

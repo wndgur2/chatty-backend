@@ -10,12 +10,15 @@ exports.AppModule = void 0;
 const common_1 = require("@nestjs/common");
 const serve_static_1 = require("@nestjs/serve-static");
 const path_1 = require("path");
+const schedule_1 = require("@nestjs/schedule");
 const app_controller_1 = require("./app.controller");
 const app_service_1 = require("./app.service");
 const chatrooms_module_1 = require("./chatrooms/chatrooms.module");
 const messages_module_1 = require("./messages/messages.module");
 const notifications_module_1 = require("./notifications/notifications.module");
 const prisma_module_1 = require("./prisma/prisma.module");
+const ollama_module_1 = require("./ollama/ollama.module");
+const tasks_module_1 = require("./tasks/tasks.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -26,10 +29,13 @@ exports.AppModule = AppModule = __decorate([
                 rootPath: (0, path_1.join)(process.cwd(), 'src', 'assets'),
                 serveRoot: '/assets',
             }),
+            schedule_1.ScheduleModule.forRoot(),
             chatrooms_module_1.ChatroomsModule,
             messages_module_1.MessagesModule,
             notifications_module_1.NotificationsModule,
             prisma_module_1.PrismaModule,
+            ollama_module_1.OllamaModule,
+            tasks_module_1.TasksModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],
