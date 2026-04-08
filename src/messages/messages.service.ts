@@ -1,5 +1,6 @@
 import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import { ChatMessage } from '../ollama/ollama.service';
+import { FcmPushService } from '../notifications/fcm-push.service';
 import { SendMessageDto } from './dto/send-message.dto';
 import { MessageHistoryService } from './message-history.service';
 import { MessageSendService } from './message-send.service';
@@ -19,6 +20,7 @@ export class MessagesService {
     private readonly aiResponseService: AiResponseService,
     private readonly messagesRepository: MessagesRepository,
     private readonly chatroomStateRepository: ChatroomStateRepository,
+    private readonly fcmPushService: FcmPushService,
   ) {}
 
   async findHistory(
@@ -95,6 +97,18 @@ export class MessagesService {
         fullContent,
         aiDbMessage.id.toString(),
       );
+
+      if (voluntary) {
+        await this.fcmPushService
+          .notifyVoluntaryAiMessage(room.userId, {
+            chatroomId: chatroomId.toString(),
+            chatroomName: room.name,
+            messagePreview: fullContent,
+          })
+          .catch((err) => {
+            this.logger.warn('FCM voluntary message notify failed', err);
+          });
+      }
     } catch (e) {
       this.logger.error(
         `Error processing AI message for room ${chatroomId}`,

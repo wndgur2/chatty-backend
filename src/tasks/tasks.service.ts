@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { INITIAL_AI_EVALUATION_DELAY_SECONDS } from '../ai-evaluation.constants';
 import { PrismaService } from '../prisma/prisma.service';
 import { OllamaService, ChatMessage } from '../ollama/ollama.service';
 import { MessagesService } from '../messages/messages.service';
@@ -88,7 +89,8 @@ export class TasksService {
               });
           } else {
             // double the delay
-            const currentDelay = room.currentDelaySeconds || 10;
+            const currentDelay =
+              room.currentDelaySeconds || INITIAL_AI_EVALUATION_DELAY_SECONDS;
             const nextDelay = currentDelay * 2;
             const nextEvalTime = new Date();
             nextEvalTime.setSeconds(nextEvalTime.getSeconds() + nextDelay);
@@ -111,7 +113,8 @@ export class TasksService {
             evalErr,
           );
           // On failure, revert to same delay and schedule it retry
-          const currentDelay = room.currentDelaySeconds || 10;
+          const currentDelay =
+            room.currentDelaySeconds || INITIAL_AI_EVALUATION_DELAY_SECONDS;
           const nextEvalTime = new Date();
           nextEvalTime.setSeconds(nextEvalTime.getSeconds() + currentDelay);
 

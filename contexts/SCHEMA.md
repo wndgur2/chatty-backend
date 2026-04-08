@@ -30,7 +30,7 @@ erDiagram
         varchar name
         text base_prompt
         varchar profile_image_url
-        int current_delay_seconds "Default 10. Used for slow-start"
+        int current_delay_seconds "Default 8. Used for slow-start"
         timestamp next_evaluation_time "Scheduled AI trigger"
         timestamp created_at
         timestamp updated_at
@@ -87,7 +87,7 @@ CREATE TABLE IF NOT EXISTS chatrooms (
     name VARCHAR(255) NOT NULL,
     base_prompt TEXT,
     profile_image_url VARCHAR(255),
-    current_delay_seconds INT DEFAULT 10,
+    current_delay_seconds INT DEFAULT 8,
     next_evaluation_time TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -116,6 +116,6 @@ CREATE TABLE IF NOT EXISTS messages (
 ## 3. Agentic Implementation Notes
 
 - **Primary Keys:** Standardized as auto-incrementing `BIGINT`. Adjust to UUID/ULID if the architecture demands decentralization, but `BIGINT` provides better indexing performance for MySQL.
-- **Voluntary AI Messaging Logic:** The `chatrooms` table holds `current_delay_seconds` and `next_evaluation_time`. When a user posts a message, update `current_delay_seconds` back to `10` and compute `next_evaluation_time`. If the scheduled evaluation fails (decides not to send), multiply `current_delay_seconds` by 2 and recalculate `next_evaluation_time`.
+- **Voluntary AI Messaging Logic:** The `chatrooms` table holds `current_delay_seconds` and `next_evaluation_time`. When a user posts a message, update `current_delay_seconds` back to `8` and compute `next_evaluation_time`. If the scheduled evaluation fails (decides not to send), multiply `current_delay_seconds` by 2 and recalculate `next_evaluation_time`.
 - **Image Uploads:** `profile_image_url` on `chatrooms` holds the CDN/S3 URL indicating the reference after the Blob upload is resolved by the backend.
 - **Constraints:** Foreign key cascading removes orphaned tokens, chatrooms, and messages when a parent entity is deleted.

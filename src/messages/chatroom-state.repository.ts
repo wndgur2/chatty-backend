@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { INITIAL_AI_EVALUATION_DELAY_SECONDS } from '../ai-evaluation.constants';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -21,8 +22,10 @@ export class ChatroomStateRepository {
     return this.prisma.chatroom.update({
       where: { id: chatroomId },
       data: {
-        currentDelaySeconds: 10,
-        nextEvaluationTime: this.getNextEvaluationTime(10),
+        currentDelaySeconds: INITIAL_AI_EVALUATION_DELAY_SECONDS,
+        nextEvaluationTime: this.getNextEvaluationTime(
+          INITIAL_AI_EVALUATION_DELAY_SECONDS,
+        ),
       },
     });
   }

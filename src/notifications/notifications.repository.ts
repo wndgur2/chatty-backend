@@ -26,4 +26,20 @@ export class NotificationsRepository {
       data: { userId },
     });
   }
+
+  findDeviceTokensByUserId(userId: bigint) {
+    return this.prisma.userDevice.findMany({
+      where: { userId },
+      select: { deviceToken: true },
+    });
+  }
+
+  deleteByDeviceTokens(deviceTokens: string[]) {
+    if (deviceTokens.length === 0) {
+      return Promise.resolve({ count: 0 });
+    }
+    return this.prisma.userDevice.deleteMany({
+      where: { deviceToken: { in: deviceTokens } },
+    });
+  }
 }

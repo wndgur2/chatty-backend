@@ -18,7 +18,8 @@ export class OllamaService {
   constructor(private readonly configService: ConfigService) {
     this.chatModel = this.configService.get<string>(
       'OLLAMA_CHAT_MODEL',
-      'hf.co/soob3123/amoral-gemma3-12B-v2-qat-Q4_0-GGUF:Q4_0',
+      'qwen2.5:1.5b',
+      // 'qwen2.5:7b',
     );
     this.evalModel = this.configService.get<string>(
       'OLLAMA_EVAL_MODEL',
@@ -38,7 +39,7 @@ export class OllamaService {
   ): Promise<boolean> {
     try {
       const formattedHistory = history
-        .slice(-3)
+        .slice(-10)
         .map((msg) => `${msg.role.toUpperCase()}: ${msg.content}`)
         .join('\n');
 

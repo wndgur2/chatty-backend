@@ -19,7 +19,7 @@ describe('ChatroomsController', () => {
   const authUser = { userId: '1' };
   const mockRequest = {
     protocol: 'http',
-    get: () => 'localhost:3000',
+    get: () => 'localhost:8080',
   } as unknown as Request;
 
   beforeEach(async () => {

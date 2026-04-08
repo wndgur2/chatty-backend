@@ -6,6 +6,7 @@ import { MessageStreamService } from './message-stream.service';
 import { AiResponseService } from './ai-response.service';
 import { MessagesRepository } from './messages.repository';
 import { ChatroomStateRepository } from './chatroom-state.repository';
+import { FcmPushService } from '../notifications/fcm-push.service';
 
 const mockMessageHistoryService = { findHistory: jest.fn() };
 const mockMessageSendService = { saveUserMessage: jest.fn() };
@@ -24,6 +25,9 @@ const mockChatroomStateRepository = {
   findByIdAndUser: jest.fn(),
   findById: jest.fn(),
 };
+const mockFcmPushService = {
+  notifyVoluntaryAiMessage: jest.fn().mockResolvedValue(undefined),
+};
 
 describe('MessagesService', () => {
   let service: MessagesService;
@@ -41,6 +45,7 @@ describe('MessagesService', () => {
           provide: ChatroomStateRepository,
           useValue: mockChatroomStateRepository,
         },
+        { provide: FcmPushService, useValue: mockFcmPushService },
       ],
     }).compile();
 
@@ -90,5 +95,37 @@ describe('MessagesService', () => {
     expect(processMock).toHaveBeenCalledWith(1);
 
     processMock.mockRestore();
+  });
+
+  it('should notify FCM after a voluntary background message completes', async () => {
+    mockChatroomStateRepository.findById.mockResolvedValue({
+      id: 1n,
+      userId: 2n,
+      name: 'Voluntary Room',
+      basePrompt: 'be brief',
+    });
+    mockMessagesRepository.findRecent.mockResolvedValue([
+      {
+        id: 1n,
+        chatroomId: 1n,
+        sender: 'user',
+        content: 'hi',
+        createdAt: new Date(),
+      },
+    ]);
+    mockAiResponseService.generate.mockResolvedValue('AI reply text');
+    mockMessagesRepository.createMessage.mockResolvedValue({ id: 42n });
+    mockChatroomStateRepository.resetDelay.mockResolvedValue(undefined);
+
+    await service.processBackgroundMessage(1, true);
+
+    expect(mockFcmPushService.notifyVoluntaryAiMessage).toHaveBeenCalledWith(
+      2n,
+      expect.objectContaining({
+        chatroomId: '1',
+        chatroomName: 'Voluntary Room',
+        messagePreview: 'AI reply text',
+      }),
+    );
   });
 });

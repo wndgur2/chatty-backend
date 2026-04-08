@@ -6,7 +6,15 @@ import { BigIntSerializerInterceptor } from './common/interceptors/bigint-serial
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  app.enableCors();
+  const expressApp = app.getHttpAdapter().getInstance();
+  expressApp.set('trust proxy', 1);
+
+  const corsOrigin = process.env.CORS_ORIGIN;
+  if (corsOrigin) {
+    app.enableCors({ origin: corsOrigin, credentials: true });
+  } else {
+    app.enableCors();
+  }
   app.useGlobalPipes(
     new ValidationPipe({
       transform: true,
@@ -16,6 +24,6 @@ async function bootstrap() {
   );
   app.useGlobalFilters(new HttpExceptionFilter());
   app.useGlobalInterceptors(new BigIntSerializerInterceptor());
-  await app.listen(process.env.PORT ?? 3000);
+  await app.listen(process.env.PORT ?? 8080);
 }
 void bootstrap();
