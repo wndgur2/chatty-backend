@@ -2,8 +2,9 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { INITIAL_AI_EVALUATION_DELAY_SECONDS } from '../ai-evaluation.constants';
 import { PrismaService } from '../prisma/prisma.service';
-import { OllamaService, ChatMessage } from '../ollama/ollama.service';
+import { OllamaService } from '../ollama/ollama.service';
 import { MessagesService } from '../messages/messages.service';
+import { toChatHistory } from '../messages/chat-history.util';
 
 @Injectable()
 export class TasksService {
@@ -60,11 +61,7 @@ export class TasksService {
           continue;
         }
 
-        historyRaw.reverse();
-        const history: ChatMessage[] = historyRaw.map((msg) => ({
-          role: msg.sender === 'user' ? 'user' : 'assistant',
-          content: msg.content,
-        }));
+        const history = toChatHistory(historyRaw);
 
         const basePrompt = room.basePrompt || 'You are a helpful assistant.';
 

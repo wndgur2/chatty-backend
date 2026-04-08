@@ -1,5 +1,4 @@
 import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
-import { ChatMessage } from '../ollama/ollama.service';
 import { FcmPushService } from '../notifications/fcm-push.service';
 import { SendMessageDto } from './dto/send-message.dto';
 import { MessageHistoryService } from './message-history.service';
@@ -8,6 +7,7 @@ import { MessageStreamService } from './message-stream.service';
 import { AiResponseService } from './ai-response.service';
 import { MessagesRepository } from './messages.repository';
 import { ChatroomStateRepository } from './chatroom-state.repository';
+import { toChatHistory } from './chat-history.util';
 
 @Injectable()
 export class MessagesService {
@@ -64,12 +64,7 @@ export class MessagesService {
         chatRoomIdBigInt,
         voluntary ? 3 : 10,
       );
-      historyRaw.reverse();
-
-      const history: ChatMessage[] = historyRaw.map((msg) => ({
-        role: msg.sender === 'user' ? 'user' : 'assistant',
-        content: msg.content,
-      }));
+      const history = toChatHistory(historyRaw);
 
       if (voluntary) {
         history.push({

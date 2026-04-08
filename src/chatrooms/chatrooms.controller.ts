@@ -11,6 +11,7 @@ import {
   ParseIntPipe,
   Req,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import type { Request } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CreateChatroomDto } from './dto/create-chatroom.dto';
@@ -21,7 +22,10 @@ import type { AuthUser } from '../auth/types/auth-user.type';
 
 @Controller('api/chatrooms')
 export class ChatroomsController {
-  constructor(private readonly chatroomsService: ChatroomsService) {}
+  constructor(
+    private readonly chatroomsService: ChatroomsService,
+    private readonly configService: ConfigService,
+  ) {}
 
   @Get()
   async findAll(@CurrentUser() user: AuthUser) {
@@ -36,7 +40,7 @@ export class ChatroomsController {
     @UploadedFile() file: Express.Multer.File,
     @Req() req: Request,
   ) {
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const baseUrl = this.resolveBaseUrl(req);
     return this.chatroomsService.create(
       user.userId,
       createChatroomDto,
@@ -62,7 +66,7 @@ export class ChatroomsController {
     @UploadedFile() file: Express.Multer.File,
     @Req() req: Request,
   ) {
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const baseUrl = this.resolveBaseUrl(req);
     return this.chatroomsService.update(
       user.userId,
       chatroomId,
@@ -70,6 +74,14 @@ export class ChatroomsController {
       baseUrl,
       file,
     );
+  }
+
+  private resolveBaseUrl(req: Request): string {
+    const publicOrigin = this.configService.get<string>('PUBLIC_ORIGIN');
+    if (publicOrigin) {
+      return publicOrigin.replace(/\/+$/, '');
+    }
+    return `${req.protocol}://${req.get('host')}`;
   }
 
   @Delete(':chatroomId')

@@ -44,11 +44,25 @@ Chatty is a real-time, AI-based chat application backend built with **NestJS**, 
    npm run start
 
    # watch mode
-   npm run start:dev
+   npm run dev
 
    # production mode
    npm run start:prod
    ```
+
+## WebSocket Streaming
+
+AI response streaming is delivered over Socket.IO via the backend gateway.
+
+- Client events:
+  - `joinRoom` with `{ chatroomId: number }`
+  - `leaveRoom` with `{ chatroomId: number }`
+- Server events:
+  - `ai_typing_state` with `{ chatroomId: number, isTyping: boolean }`
+  - `ai_message_chunk` with `{ chatroomId: number, chunk: string }`
+  - `ai_message_complete` with `{ chatroomId: number, content: string, messageId: number }`
+
+Note: current WebSocket room join/leave does not enforce JWT auth at gateway level.
 
 ## Features Implemented
 - **Chatrooms (CRUD)**: Create, View, Update, and Delete customized DB Chatrooms. Native file uploading handles saving profile images seamlessly locally into `src/assets` and hosts them via `.baseUrl`.

@@ -2,19 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as fs from 'fs';
 import * as path from 'path';
+import { resolveAssetsDir } from '../../common/utils/assets-path.util';
 
 @Injectable()
 export class StorageService {
   constructor(private readonly configService: ConfigService) {}
 
   private assetsDir(): string {
-    const fromEnv = this.configService.get<string>('ASSETS_DIR');
-    if (fromEnv) {
-      return path.isAbsolute(fromEnv)
-        ? fromEnv
-        : path.join(process.cwd(), fromEnv);
-    }
-    return path.join(process.cwd(), 'src', 'assets');
+    return resolveAssetsDir(this.configService.get<string>('ASSETS_DIR'));
   }
 
   async saveProfileImage(

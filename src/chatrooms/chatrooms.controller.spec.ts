@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { Request } from 'express';
+import { ConfigService } from '@nestjs/config';
 import { ChatroomsController } from './chatrooms.controller';
 import { ChatroomsService } from './chatrooms.service';
 import { Readable } from 'stream';
@@ -17,6 +18,9 @@ const mockChatroomsService = {
 describe('ChatroomsController', () => {
   let controller: ChatroomsController;
   const authUser = { userId: '1' };
+  const mockConfigService = {
+    get: jest.fn(),
+  };
   const mockRequest = {
     protocol: 'http',
     get: () => 'localhost:8080',
@@ -29,6 +33,10 @@ describe('ChatroomsController', () => {
         {
           provide: ChatroomsService,
           useValue: mockChatroomsService,
+        },
+        {
+          provide: ConfigService,
+          useValue: mockConfigService,
         },
       ],
     }).compile();
@@ -53,6 +61,7 @@ describe('ChatroomsController', () => {
   });
 
   it('should create a chatroom', async () => {
+    mockConfigService.get.mockReturnValue(undefined);
     const dto = { name: 'New Chat', basePrompt: 'Prompt' };
 
     const file: Express.Multer.File = {
@@ -73,6 +82,40 @@ describe('ChatroomsController', () => {
     expect(await controller.create(authUser, dto, file, mockRequest)).toBe(
       result,
     );
+    expect(mockChatroomsService.create).toHaveBeenCalledWith(
+      authUser.userId,
+      dto,
+      'http://localhost:8080',
+      file,
+    );
+  });
+
+  it('should use PUBLIC_ORIGIN when creating a chatroom', async () => {
+    mockConfigService.get.mockReturnValue('http://localhost:8080');
+    const dto = { name: 'New Chat', basePrompt: 'Prompt' };
+    const file: Express.Multer.File = {
+      buffer: Buffer.from(''),
+      fieldname: 'profileImage',
+      originalname: 'test.png',
+      encoding: '7bit',
+      mimetype: 'image/png',
+      size: 0,
+      stream: new Readable(),
+      destination: '',
+      filename: '',
+      path: '',
+    };
+    const result = { id: 2, ...dto };
+    mockChatroomsService.create.mockResolvedValue(result);
+
+    await controller.create(authUser, dto, file, mockRequest);
+
+    expect(mockChatroomsService.create).toHaveBeenCalledWith(
+      authUser.userId,
+      dto,
+      'http://localhost:8080',
+      file,
+    );
   });
 
   it('should return a single chatroom by id', async () => {
@@ -87,6 +130,7 @@ describe('ChatroomsController', () => {
   });
 
   it('should update a chatroom', async () => {
+    mockConfigService.get.mockReturnValue(undefined);
     const dto = { basePrompt: 'New Prompt' };
 
     const file: Express.Multer.File = {
@@ -106,6 +150,42 @@ describe('ChatroomsController', () => {
 
     expect(await controller.update(authUser, 1, dto, file, mockRequest)).toBe(
       result,
+    );
+    expect(mockChatroomsService.update).toHaveBeenCalledWith(
+      authUser.userId,
+      1,
+      dto,
+      'http://localhost:8080',
+      file,
+    );
+  });
+
+  it('should use PUBLIC_ORIGIN when updating a chatroom', async () => {
+    mockConfigService.get.mockReturnValue('https://chatty.example.com');
+    const dto = { basePrompt: 'New Prompt' };
+    const file: Express.Multer.File = {
+      buffer: Buffer.from(''),
+      fieldname: 'profileImage',
+      originalname: 'test.png',
+      encoding: '7bit',
+      mimetype: 'image/png',
+      size: 0,
+      stream: new Readable(),
+      destination: '',
+      filename: '',
+      path: '',
+    };
+    const result = { id: 1, ...dto };
+    mockChatroomsService.update.mockResolvedValue(result);
+
+    await controller.update(authUser, 1, dto, file, mockRequest);
+
+    expect(mockChatroomsService.update).toHaveBeenCalledWith(
+      authUser.userId,
+      1,
+      dto,
+      'https://chatty.example.com',
+      file,
     );
   });
 

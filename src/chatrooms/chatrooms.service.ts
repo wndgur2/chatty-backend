@@ -14,7 +14,7 @@ export class ChatroomsService {
 
   async findAll(userId: string) {
     const chatrooms = await this.chatroomsRepository.findManyByUser(
-      BigInt(userId),
+      this.toUserId(userId),
     );
     return chatrooms.map(serializeChatroom);
   }
@@ -36,7 +36,7 @@ export class ChatroomsService {
     const created = await this.chatroomsRepository.create({
       user: {
         connect: {
-          id: BigInt(userId),
+          id: this.toUserId(userId),
         },
       },
       name: dto.name,
@@ -47,11 +47,7 @@ export class ChatroomsService {
   }
 
   async findOne(userId: string, id: number) {
-    const chatroom = await this.chatroomsRepository.findByIdAndUser(
-      BigInt(id),
-      BigInt(userId),
-    );
-    if (!chatroom) throw new NotFoundException('Chatroom not found');
+    const chatroom = await this.getOwnedChatroomOrThrow(userId, id);
     return serializeChatroom(chatroom);
   }
 
@@ -62,11 +58,7 @@ export class ChatroomsService {
     baseUrl: string,
     file?: Express.Multer.File,
   ) {
-    const chatroom = await this.chatroomsRepository.findByIdAndUser(
-      BigInt(id),
-      BigInt(userId),
-    );
-    if (!chatroom) throw new NotFoundException('Chatroom not found');
+    const chatroom = await this.getOwnedChatroomOrThrow(userId, id);
 
     let profileImageUrl = chatroom.profileImageUrl;
     if (file) {
@@ -85,20 +77,12 @@ export class ChatroomsService {
   }
 
   async remove(userId: string, id: number) {
-    const chatroom = await this.chatroomsRepository.findByIdAndUser(
-      BigInt(id),
-      BigInt(userId),
-    );
-    if (!chatroom) throw new NotFoundException('Chatroom not found');
+    const chatroom = await this.getOwnedChatroomOrThrow(userId, id);
     await this.chatroomsRepository.delete(chatroom.id);
   }
 
   async clone(userId: string, id: number) {
-    const source = await this.chatroomsRepository.findByIdAndUser(
-      BigInt(id),
-      BigInt(userId),
-    );
-    if (!source) throw new NotFoundException('Chatroom not found');
+    const source = await this.getOwnedChatroomOrThrow(userId, id);
     const cloned = await this.chatroomsRepository.create({
       user: { connect: { id: source.userId } },
       name: `${source.name} (Clone)`,
@@ -109,11 +93,7 @@ export class ChatroomsService {
   }
 
   async branch(userId: string, id: number) {
-    const source = await this.chatroomsRepository.findByIdAndUser(
-      BigInt(id),
-      BigInt(userId),
-    );
-    if (!source) throw new NotFoundException('Chatroom not found');
+    const source = await this.getOwnedChatroomOrThrow(userId, id);
 
     const branched = await this.chatroomsRepository.transaction(async (tx) => {
       const newChatroom = await tx.chatroom.create({
@@ -143,5 +123,20 @@ export class ChatroomsService {
       return newChatroom;
     });
     return serializeChatroom(branched);
+  }
+
+  private async getOwnedChatroomOrThrow(userId: string, id: number) {
+    const chatroom = await this.chatroomsRepository.findByIdAndUser(
+      BigInt(id),
+      this.toUserId(userId),
+    );
+    if (!chatroom) {
+      throw new NotFoundException('Chatroom not found');
+    }
+    return chatroom;
+  }
+
+  private toUserId(userId: string): bigint {
+    return BigInt(userId);
   }
 }

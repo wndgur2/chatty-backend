@@ -5,6 +5,7 @@ import type { StringValue } from 'ms';
 import { PrismaModule } from '../prisma/prisma.module';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { DEV_JWT_SECRET_FALLBACK } from './auth.constants';
 import { JwtStrategy } from './jwt.strategy';
 
 @Module({
@@ -12,7 +13,7 @@ import { JwtStrategy } from './jwt.strategy';
     PrismaModule,
     PassportModule,
     JwtModule.register({
-      secret: process.env.JWT_SECRET ?? 'chatty-dev-secret',
+      secret: process.env.JWT_SECRET ?? DEV_JWT_SECRET_FALLBACK,
       signOptions: {
         expiresIn: (process.env.JWT_EXPIRES_IN ?? '7d') as StringValue,
       },
@@ -20,6 +21,5 @@ import { JwtStrategy } from './jwt.strategy';
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],
-  exports: [JwtModule],
 })
 export class AuthModule {}

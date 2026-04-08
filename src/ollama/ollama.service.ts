@@ -54,7 +54,7 @@ export class OllamaService {
 
       const response = await this.ollama.chat({
         model: this.evalModel,
-        messages: [{ role: 'user', content: evaluationUserPrompt.trim() }],
+        messages: [{ role: 'system', content: evaluationUserPrompt.trim() }],
         stream: false,
       });
 

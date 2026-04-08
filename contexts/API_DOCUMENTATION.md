@@ -10,6 +10,8 @@ All `/api/**` endpoints require a bearer token except:
 - `GET /`
 - `POST /api/auth/login`
 
+WebSocket events are handled separately from `/api/**` routes. Current gateway behavior does not enforce JWT at join/leave event level.
+
 ### 0.1 Login (Issue JWT)
 
 - **Method:** `POST`
@@ -290,4 +292,56 @@ Register a user's device for receiving FCM push notifications (for voluntary AI 
     "status": "success",
     "message": "FCM token registered successfully."
   }
+  ```
+
+---
+
+## 5. WebSocket Events (Socket.IO)
+
+### 5.1 Connection
+
+- **Transport:** Socket.IO
+- **Gateway:** backend `MessagesGateway`
+- **Auth:** Currently no JWT guard enforced at gateway event level.
+
+### 5.2 Client -> Server Events
+
+#### `joinRoom`
+- **Payload:**
+  ```json
+  { "chatroomId": 2 }
+  ```
+- **Ack/Event Response:**
+  ```json
+  { "event": "joined", "data": { "room": 2 } }
+  ```
+
+#### `leaveRoom`
+- **Payload:**
+  ```json
+  { "chatroomId": 2 }
+  ```
+- **Ack/Event Response:**
+  ```json
+  { "event": "left", "data": { "room": 2 } }
+  ```
+
+### 5.3 Server -> Client Events
+
+#### `ai_typing_state`
+- **Payload:**
+  ```json
+  { "chatroomId": 2, "isTyping": true }
+  ```
+
+#### `ai_message_chunk`
+- **Payload:**
+  ```json
+  { "chatroomId": 2, "chunk": "partial token(s)" }
+  ```
+
+#### `ai_message_complete`
+- **Payload:**
+  ```json
+  { "chatroomId": 2, "content": "final message", "messageId": 123 }
   ```
