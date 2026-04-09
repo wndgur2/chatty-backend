@@ -18,8 +18,7 @@ export class OllamaService {
   constructor(private readonly configService: ConfigService) {
     this.chatModel = this.configService.get<string>(
       'OLLAMA_CHAT_MODEL',
-      'qwen2.5:1.5b',
-      // 'qwen2.5:7b',
+      'qwen2.5:7b',
     );
     this.evalModel = this.configService.get<string>(
       'OLLAMA_EVAL_MODEL',
@@ -47,6 +46,8 @@ export class OllamaService {
       ${basePrompt}\n
       Based on the conversation history below, should the assistant send additional message?
       Reply ONLY with "YES" or "NO". Do not provide any other explanation.
+
+      REPLY with "YES" if user requested reminder, alert, or notification.
       
       History:
       ${formattedHistory}

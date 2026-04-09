@@ -60,6 +60,11 @@ export class MessagesService {
       if (!room) return;
 
       const basePrompt = room.basePrompt || '';
+
+      this.logger.debug(
+        `Processing background message for chatroom ${chatroomId} with base prompt: ${basePrompt}`,
+      );
+
       const historyRaw = await this.messagesRepository.findRecent(
         chatRoomIdBigInt,
         voluntary ? 3 : 10,
