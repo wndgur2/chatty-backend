@@ -57,9 +57,10 @@ export class FcmPushService implements OnModuleInit {
   }
 
   /**
-   * Sends a push for a voluntary AI message. Uses both `data` (for web routing)
-   * and `notification` (system tray). Clients that show their own UI may
-   * dedupe on `data.type`.
+   * Sends a notification with data payload FCM multicast for a voluntary AI message. Clients must
+   * show a user-visible notification (e.g. service worker `showNotification`,
+   * Android/iOS local notification) using `data.title` and `data.body`. Use
+   * `data` for routing and dedupe on `data.type`.
    */
   async notifyVoluntaryAiMessage(
     userId: bigint,
@@ -93,6 +94,8 @@ export class FcmPushService implements OnModuleInit {
     const data: Record<string, string> = {
       type: 'voluntary_ai_message',
       chatroomId: payload.chatroomId,
+      title,
+      body,
     };
     if (payload.chatroomName != null) {
       data.chatroomName = payload.chatroomName;
@@ -101,10 +104,17 @@ export class FcmPushService implements OnModuleInit {
       data.messagePreview = payload.messagePreview.slice(0, 500);
     }
 
+    const imageUrl = '/favicon.ico';
+
     const message = {
       tokens,
-      notification: { title, body },
       data,
+      android: { priority: 'high' as const },
+      notification: {
+        title,
+        body,
+        imageUrl,
+      },
     };
 
     try {

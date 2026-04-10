@@ -102,8 +102,8 @@ describe('FcmPushService', () => {
     expect(sendEachForMulticast).toHaveBeenCalled();
     type MulticastArg = {
       tokens: string[];
-      notification: { title: string };
       data: Record<string, string>;
+      android: { priority: 'high' };
     };
     const calls = sendEachForMulticast.mock.calls as unknown as [
       MulticastArg,
@@ -113,9 +113,12 @@ describe('FcmPushService', () => {
       throw new Error('expected sendEachForMulticast payload');
     }
     expect(payload.tokens).toEqual(['good-token', 'bad-token']);
-    expect(payload.notification.title).toBe('New message in Room A');
+    expect(payload).not.toHaveProperty('notification');
+    expect(payload.android.priority).toBe('high');
     expect(payload.data.type).toBe('voluntary_ai_message');
     expect(payload.data.chatroomId).toBe('5');
+    expect(payload.data.title).toBe('New message in Room A');
+    expect(payload.data.body).toBe('Hello world');
     expect(repository.deleteByDeviceTokens).toHaveBeenCalledWith(['bad-token']);
   });
 

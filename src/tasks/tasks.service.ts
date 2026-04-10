@@ -1,6 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
-import { INITIAL_AI_EVALUATION_DELAY_SECONDS } from '../ai-evaluation.constants';
+import { Cron } from '@nestjs/schedule';
+import {
+  AI_BACKGROUND_EVALUATION_CRON,
+  INITIAL_AI_EVALUATION_DELAY_SECONDS,
+} from '../ai-evaluation.constants';
 import { PrismaService } from '../prisma/prisma.service';
 import { OllamaService } from '../ollama/ollama.service';
 import { MessagesService } from '../messages/messages.service';
@@ -17,7 +20,7 @@ export class TasksService {
     private messages: MessagesService,
   ) {}
 
-  @Cron(CronExpression.EVERY_10_SECONDS)
+  @Cron(AI_BACKGROUND_EVALUATION_CRON)
   async handleAIBackgroundEvaluations() {
     if (this.isProcessing) return;
     this.isProcessing = true;
