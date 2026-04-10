@@ -11,6 +11,22 @@ export class NotificationsRepository {
     });
   }
 
+  findChatroomOwnerInfoById(chatroomId: bigint) {
+    return this.prisma.chatroom.findUnique({
+      where: { id: chatroomId },
+      select: {
+        id: true,
+        name: true,
+        user: {
+          select: {
+            id: true,
+            username: true,
+          },
+        },
+      },
+    });
+  }
+
   createDevice(userId: bigint, deviceToken: string) {
     return this.prisma.userDevice.create({
       data: {

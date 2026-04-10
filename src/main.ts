@@ -1,13 +1,13 @@
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { BigIntSerializerInterceptor } from './common/interceptors/bigint-serializer.interceptor';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  const expressApp = app.getHttpAdapter().getInstance();
-  expressApp.set('trust proxy', 1);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  app.set('trust proxy', 1);
 
   const corsOrigin = process.env.CORS_ORIGIN;
   if (corsOrigin) {

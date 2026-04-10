@@ -55,6 +55,9 @@ describe('FcmPushService', () => {
                     '-----BEGIN PRIVATE KEY-----\nMIIE\n-----END PRIVATE KEY-----\n',
                 });
               }
+              if (key === 'PUBLIC_ORIGIN') {
+                return 'http://localhost:3000';
+              }
               return undefined;
             }),
           },
@@ -104,6 +107,7 @@ describe('FcmPushService', () => {
       tokens: string[];
       data: Record<string, string>;
       android: { priority: 'high' };
+      notification: { title: string; body: string; imageUrl: string };
     };
     const calls = sendEachForMulticast.mock.calls as unknown as [
       MulticastArg,
@@ -113,8 +117,12 @@ describe('FcmPushService', () => {
       throw new Error('expected sendEachForMulticast payload');
     }
     expect(payload.tokens).toEqual(['good-token', 'bad-token']);
-    expect(payload).not.toHaveProperty('notification');
     expect(payload.android.priority).toBe('high');
+    expect(payload.notification.title).toBe('New message in Room A');
+    expect(payload.notification.body).toBe('Hello world');
+    expect(payload.notification.imageUrl).toBe(
+      'http://localhost:3000/favicon.ico',
+    );
     expect(payload.data.type).toBe('voluntary_ai_message');
     expect(payload.data.chatroomId).toBe('5');
     expect(payload.data.title).toBe('New message in Room A');
@@ -128,5 +136,45 @@ describe('FcmPushService', () => {
     await service.notifyVoluntaryAiMessage(1n, { chatroomId: '1' });
 
     expect(sendEachForMulticast).not.toHaveBeenCalled();
+  });
+
+  it('should send formatted test notification payload', async () => {
+    repository.findDeviceTokensByUserId.mockResolvedValue([
+      { deviceToken: 'device-1' },
+    ]);
+    sendEachForMulticast.mockResolvedValue({
+      responses: [{ success: true }],
+    });
+
+    await service.sendTestNotificationToUser({
+      userId: 3n,
+      chatroomId: '12',
+      chatroomName: 'Focus Room',
+      username: 'june',
+    });
+
+    type MulticastArg = {
+      tokens: string[];
+      data: Record<string, string>;
+      android: { priority: 'high' };
+      notification: { title: string; body: string; imageUrl: string };
+    };
+    const calls = sendEachForMulticast.mock.calls as unknown as [
+      MulticastArg,
+    ][];
+    const payload = calls[0]?.[0];
+    if (!payload) {
+      throw new Error('expected sendEachForMulticast payload');
+    }
+
+    expect(payload.tokens).toEqual(['device-1']);
+    expect(payload.notification.title).toBe('Focus Room');
+    expect(payload.notification.body).toBe(
+      'test notification for user june, chatroomId Focus Room',
+    );
+    expect(payload.data.type).toBe('test_notification');
+    expect(payload.data.chatroomId).toBe('12');
+    expect(payload.data.chatroomName).toBe('Focus Room');
+    expect(payload.data.username).toBe('june');
   });
 });

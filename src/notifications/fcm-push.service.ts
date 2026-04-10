@@ -70,17 +70,6 @@ export class FcmPushService implements OnModuleInit {
       messagePreview?: string;
     },
   ): Promise<void> {
-    if (!this.messaging) {
-      return;
-    }
-
-    const rows =
-      await this.notificationsRepository.findDeviceTokensByUserId(userId);
-    const tokens = rows.map((r) => r.deviceToken);
-    if (tokens.length === 0) {
-      return;
-    }
-
     const title =
       payload.chatroomName != null && payload.chatroomName.length > 0
         ? `New message in ${payload.chatroomName}`
@@ -104,19 +93,65 @@ export class FcmPushService implements OnModuleInit {
       data.messagePreview = payload.messagePreview.slice(0, 500);
     }
 
+    await this.sendToUserDevices(userId, { title, body, data });
+  }
+
+  async sendTestNotificationToUser(payload: {
+    userId: bigint;
+    chatroomId: string;
+    chatroomName: string;
+    username: string;
+  }): Promise<void> {
+    const title = payload.chatroomName;
+    const body = `test notification for user ${payload.username}, chatroomId ${payload.chatroomName}`;
+    const data: Record<string, string> = {
+      type: 'test_notification',
+      chatroomId: payload.chatroomId,
+      chatroomName: payload.chatroomName,
+      username: payload.username,
+      title,
+      body,
+    };
+
+    await this.sendToUserDevices(payload.userId, { title, body, data });
+  }
+
+  private async sendToUserDevices(
+    userId: bigint,
+    payload: {
+      title: string;
+      body: string;
+      data: Record<string, string>;
+    },
+  ): Promise<void> {
+    if (!this.messaging) {
+      return;
+    }
+
+    const rows =
+      await this.notificationsRepository.findDeviceTokensByUserId(userId);
+    const tokens = rows.map((r) => r.deviceToken);
+    if (tokens.length === 0) {
+      return;
+    }
+
     const imageUrl =
       this.configService.get<string>('PUBLIC_ORIGIN') + '/favicon.ico';
 
     const message = {
       tokens,
-      data,
+      data: payload.data,
       android: { priority: 'high' as const },
       notification: {
-        title,
-        body,
+        title: payload.title,
+        body: payload.body,
         imageUrl,
       },
     };
+
+    this.logger.debug(
+      `Sending FCM message to user ${userId}: ${JSON.stringify(message)}`,
+    );
 
     try {
       const result = await this.messaging.sendEachForMulticast(message);
