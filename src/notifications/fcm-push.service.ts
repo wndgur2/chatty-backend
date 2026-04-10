@@ -104,7 +104,8 @@ export class FcmPushService implements OnModuleInit {
       data.messagePreview = payload.messagePreview.slice(0, 500);
     }
 
-    const imageUrl = '/favicon.ico';
+    const imageUrl =
+      this.configService.get<string>('PUBLIC_ORIGIN') + '/favicon.ico';
 
     const message = {
       tokens,
