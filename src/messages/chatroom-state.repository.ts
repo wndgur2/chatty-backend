@@ -18,6 +18,13 @@ export class ChatroomStateRepository {
     });
   }
 
+  clearNextEvaluationTime(chatroomId: bigint) {
+    return this.prisma.chatroom.update({
+      where: { id: chatroomId },
+      data: { nextEvaluationTime: null },
+    });
+  }
+
   resetDelay(chatroomId: bigint) {
     return this.prisma.chatroom.update({
       where: { id: chatroomId },

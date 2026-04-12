@@ -7,6 +7,10 @@ import { AiResponseService } from './ai-response.service';
 import { MessagesRepository } from './messages.repository';
 import { ChatroomStateRepository } from './chatroom-state.repository';
 import { FcmPushService } from '../notifications/fcm-push.service';
+import {
+  NORMAL_CHAT_BASE_SYSTEM,
+  STABLE_VOLUNTARY_ALIGNMENT,
+} from '../ai-evaluation.constants';
 
 const mockMessageHistoryService = { findHistory: jest.fn() };
 const mockMessageSendService = { saveUserMessage: jest.fn() };
@@ -21,6 +25,7 @@ const mockMessagesRepository = {
   findRecent: jest.fn(),
 };
 const mockChatroomStateRepository = {
+  clearNextEvaluationTime: jest.fn(),
   resetDelay: jest.fn(),
   findByIdAndUser: jest.fn(),
   findById: jest.fn(),
@@ -80,6 +85,9 @@ describe('MessagesService', () => {
       mockCreatedMessage,
     );
     mockChatroomStateRepository.findByIdAndUser.mockResolvedValue({ id: 1n });
+    mockChatroomStateRepository.clearNextEvaluationTime.mockResolvedValue(
+      undefined,
+    );
 
     const dto = { content: 'Tell me a joke.' };
 
@@ -92,6 +100,9 @@ describe('MessagesService', () => {
 
     expect(result).toEqual({ messageId: '103', status: 'processing' });
     expect(mockMessageSendService.saveUserMessage).toHaveBeenCalled();
+    expect(
+      mockChatroomStateRepository.clearNextEvaluationTime,
+    ).toHaveBeenCalledWith(1n);
     expect(processMock).toHaveBeenCalledWith(1);
 
     processMock.mockRestore();
@@ -119,6 +130,19 @@ describe('MessagesService', () => {
 
     await service.processBackgroundMessage(1, true);
 
+    expect(mockAiResponseService.generate).toHaveBeenCalled();
+    const genArgs = mockAiResponseService.generate.mock.calls[0] as [
+      { role: string; content: string }[],
+      string,
+      (chunk: string) => void,
+      { voluntary?: boolean } | undefined,
+    ];
+    expect(genArgs[0][0]).toEqual({ role: 'user', content: 'hi' });
+    expect(genArgs[0][1].role).toBe('system');
+    expect(genArgs[0][1].content).toContain('Voluntary = short');
+    expect(genArgs[0][1].content).toContain('hi');
+    expect(genArgs[1]).toBe(`be brief\n\n${STABLE_VOLUNTARY_ALIGNMENT}`);
+    expect(genArgs[3]).toEqual({ voluntary: true });
     expect(mockFcmPushService.notifyVoluntaryAiMessage).toHaveBeenCalledWith(
       2n,
       expect.objectContaining({
@@ -126,6 +150,66 @@ describe('MessagesService', () => {
         chatroomName: 'Voluntary Room',
         messagePreview: 'AI reply text',
       }),
+    );
+  });
+
+  it('should prepend normal base system prompt for non-voluntary background messages', async () => {
+    mockChatroomStateRepository.findById.mockResolvedValue({
+      id: 1n,
+      userId: 2n,
+      name: 'Room',
+      basePrompt: 'You are helpful.',
+    });
+    mockMessagesRepository.findRecent.mockResolvedValue([
+      {
+        id: 1n,
+        chatroomId: 1n,
+        sender: 'user',
+        content: 'hello',
+        createdAt: new Date(),
+      },
+    ]);
+    mockAiResponseService.generate.mockResolvedValue('reply');
+    mockMessagesRepository.createMessage.mockResolvedValue({ id: 1n });
+    mockChatroomStateRepository.resetDelay.mockResolvedValue(undefined);
+
+    await service.processBackgroundMessage(1, false);
+
+    expect(mockAiResponseService.generate).toHaveBeenCalledWith(
+      [{ role: 'user', content: 'hello' }],
+      `${NORMAL_CHAT_BASE_SYSTEM}\n\nYou are helpful.`,
+      expect.any(Function),
+      undefined,
+    );
+  });
+
+  it('should use only the normal base system prompt when room basePrompt is empty', async () => {
+    mockChatroomStateRepository.findById.mockResolvedValue({
+      id: 1n,
+      userId: 2n,
+      name: 'Room',
+      basePrompt: '',
+    });
+    mockMessagesRepository.findRecent.mockResolvedValue([
+      {
+        id: 1n,
+        chatroomId: 1n,
+        sender: 'user',
+        content: 'hey',
+        createdAt: new Date(),
+      },
+    ]);
+    mockAiResponseService.generate.mockResolvedValue('ok');
+    mockMessagesRepository.createMessage.mockResolvedValue({ id: 1n });
+    mockChatroomStateRepository.resetDelay.mockResolvedValue(undefined);
+
+    await service.processBackgroundMessage(1, false);
+
+    expect(mockAiResponseService.generate).toHaveBeenCalledWith(
+      [{ role: 'user', content: 'hey' }],
+      NORMAL_CHAT_BASE_SYSTEM,
+      expect.any(Function),
+      undefined,
     );
   });
 });

@@ -1,6 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Ollama } from 'ollama';
+import {
+  DEFAULT_CHAT_OLLAMA_OPTIONS,
+  VOLUNTARY_OLLAMA_OPTIONS,
+} from '../ai-evaluation.constants';
 
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
@@ -67,12 +71,24 @@ export class OllamaService {
     }
   }
 
-  // Used for streaming WebSockets
-  async streamChatResponse(history: ChatMessage[], basePrompt: string) {
+  /**
+   * Streams chat completion. Uses `DEFAULT_CHAT_OLLAMA_OPTIONS` for normal replies and
+   * `VOLUNTARY_OLLAMA_OPTIONS` when `voluntary` is true.
+   */
+  async streamChatResponse(
+    history: ChatMessage[],
+    basePrompt: string,
+    streamingOpts?: { voluntary?: boolean },
+  ) {
+    const options = streamingOpts?.voluntary
+      ? { ...VOLUNTARY_OLLAMA_OPTIONS }
+      : { ...DEFAULT_CHAT_OLLAMA_OPTIONS };
+
     return this.ollama.chat({
       model: this.chatModel,
       messages: [{ role: 'system', content: basePrompt }, ...history],
       stream: true,
+      options,
     });
   }
 }

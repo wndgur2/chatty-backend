@@ -7,12 +7,14 @@ export class AiResponseService {
 
   async generate(
     history: ChatMessage[],
-    basePrompt: string,
+    systemPrompt: string,
     onChunk?: (chunk: string) => void,
+    opts?: { voluntary?: boolean },
   ) {
     const stream = await this.ollamaService.streamChatResponse(
       history,
-      basePrompt,
+      systemPrompt,
+      opts?.voluntary ? { voluntary: true } : undefined,
     );
     let fullContent = '';
 

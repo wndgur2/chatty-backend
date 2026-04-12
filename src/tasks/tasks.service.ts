@@ -3,11 +3,15 @@ import { Cron } from '@nestjs/schedule';
 import {
   AI_BACKGROUND_EVALUATION_CRON,
   INITIAL_AI_EVALUATION_DELAY_SECONDS,
+  MAX_VOLUNTARY_MESSAGES_IN_A_ROW,
 } from '../ai-evaluation.constants';
 import { PrismaService } from '../prisma/prisma.service';
 import { OllamaService } from '../ollama/ollama.service';
 import { MessagesService } from '../messages/messages.service';
-import { toChatHistory } from '../messages/chat-history.util';
+import {
+  toChatHistory,
+  voluntaryAiCountInRowFromNewestFirst,
+} from '../messages/chat-history.util';
 
 @Injectable()
 export class TasksService {
@@ -64,6 +68,15 @@ export class TasksService {
           continue;
         }
 
+        const voluntaryInRow = voluntaryAiCountInRowFromNewestFirst(historyRaw);
+        if (voluntaryInRow >= MAX_VOLUNTARY_MESSAGES_IN_A_ROW) {
+          this.logger.log(
+            `Room ${room.id} voluntary streak at cap (${voluntaryInRow} >= ${MAX_VOLUNTARY_MESSAGES_IN_A_ROW}). Backing off.`,
+          );
+          await this.applyEvaluationBackoff(room);
+          continue;
+        }
+
         const history = toChatHistory(historyRaw);
 
         const basePrompt = room.basePrompt || 'You are a helpful assistant.';
@@ -88,24 +101,10 @@ export class TasksService {
                 );
               });
           } else {
-            // double the delay
-            const currentDelay =
-              room.currentDelaySeconds || INITIAL_AI_EVALUATION_DELAY_SECONDS;
-            const nextDelay = currentDelay * 2;
-            const nextEvalTime = new Date();
-            nextEvalTime.setSeconds(nextEvalTime.getSeconds() + nextDelay);
-
+            const nextDelay = await this.applyEvaluationBackoff(room);
             this.logger.log(
               `Room ${room.id} evaluating to NO. Backing off to ${nextDelay}s delay.`,
             );
-
-            await this.prisma.chatroom.update({
-              where: { id: room.id },
-              data: {
-                currentDelaySeconds: nextDelay,
-                nextEvaluationTime: nextEvalTime,
-              },
-            });
           }
         } catch (evalErr) {
           this.logger.error(
@@ -131,5 +130,26 @@ export class TasksService {
     } finally {
       this.isProcessing = false;
     }
+  }
+
+  /** Doubles delay and schedules next evaluation (same as Ollama "do not answer"). */
+  private async applyEvaluationBackoff(room: {
+    id: bigint;
+    currentDelaySeconds: number;
+  }): Promise<number> {
+    const currentDelay =
+      room.currentDelaySeconds || INITIAL_AI_EVALUATION_DELAY_SECONDS;
+    const nextDelay = currentDelay * 2;
+    const nextEvalTime = new Date();
+    nextEvalTime.setSeconds(nextEvalTime.getSeconds() + nextDelay);
+
+    await this.prisma.chatroom.update({
+      where: { id: room.id },
+      data: {
+        currentDelaySeconds: nextDelay,
+        nextEvaluationTime: nextEvalTime,
+      },
+    });
+    return nextDelay;
   }
 }

@@ -3,6 +3,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { OllamaService } from './ollama.service';
 import { Ollama } from 'ollama';
+import {
+  DEFAULT_CHAT_OLLAMA_OPTIONS,
+  VOLUNTARY_OLLAMA_OPTIONS,
+} from '../ai-evaluation.constants';
 
 describe('OllamaService', () => {
   let service: OllamaService;
@@ -59,5 +63,35 @@ describe('OllamaService', () => {
     );
 
     expect(result).toBe(false);
+  });
+
+  it('should pass voluntary decoding options when streaming a voluntary response', async () => {
+    const mockChat = (service as any).ollama.chat as jest.Mock;
+    async function* emptyStream() {}
+    mockChat.mockReturnValue(emptyStream());
+
+    await service.streamChatResponse([], 'system prompt', { voluntary: true });
+
+    expect(mockChat).toHaveBeenCalledWith({
+      model: 'qwen2.5:7b',
+      messages: [{ role: 'system', content: 'system prompt' }],
+      stream: true,
+      options: { ...VOLUNTARY_OLLAMA_OPTIONS },
+    });
+  });
+
+  it('should pass default chat decoding options when voluntary is unset', async () => {
+    const mockChat = (service as any).ollama.chat as jest.Mock;
+    async function* emptyStream() {}
+    mockChat.mockReturnValue(emptyStream());
+
+    await service.streamChatResponse([], 'system prompt');
+
+    expect(mockChat).toHaveBeenCalledWith({
+      model: 'qwen2.5:7b',
+      messages: [{ role: 'system', content: 'system prompt' }],
+      stream: true,
+      options: { ...DEFAULT_CHAT_OLLAMA_OPTIONS },
+    });
   });
 });

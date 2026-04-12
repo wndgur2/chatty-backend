@@ -7,6 +7,11 @@ import { MessageStreamService } from './message-stream.service';
 import { AiResponseService } from './ai-response.service';
 import { MessagesRepository } from './messages.repository';
 import { ChatroomStateRepository } from './chatroom-state.repository';
+import {
+  buildVoluntaryLastInstruction,
+  NORMAL_CHAT_BASE_SYSTEM,
+  STABLE_VOLUNTARY_ALIGNMENT,
+} from '../ai-evaluation.constants';
 import { toChatHistory } from './chat-history.util';
 
 @Injectable()
@@ -39,7 +44,9 @@ export class MessagesService {
       chatroomId,
       dto,
     );
-    await this.chatroomStateRepository.resetDelay(BigInt(chatroomId));
+    await this.chatroomStateRepository.clearNextEvaluationTime(
+      BigInt(chatroomId),
+    );
 
     this.processBackgroundMessage(chatroomId).catch((err) => {
       this.logger.error('Background processing failed', err);
@@ -60,6 +67,11 @@ export class MessagesService {
       if (!room) return;
 
       const basePrompt = room.basePrompt || '';
+      const systemPrompt = voluntary
+        ? (basePrompt ? `${basePrompt}\n\n` : '') + STABLE_VOLUNTARY_ALIGNMENT
+        : [NORMAL_CHAT_BASE_SYSTEM, basePrompt]
+            .filter((s) => s.trim())
+            .join('\n\n');
 
       this.logger.debug(
         `Processing background message for chatroom ${chatroomId} with base prompt: ${basePrompt}`,
@@ -67,22 +79,24 @@ export class MessagesService {
 
       const historyRaw = await this.messagesRepository.findRecent(
         chatRoomIdBigInt,
-        voluntary ? 3 : 10,
+        voluntary ? 5 : 8,
       );
       const history = toChatHistory(historyRaw);
 
       if (voluntary) {
+        const lastContent = history[history.length - 1]?.content ?? '';
         history.push({
           role: 'system',
-          content: 'You should respond with additional message.',
+          content: buildVoluntaryLastInstruction(lastContent),
         });
       }
 
       this.messageStreamService.setTyping(chatroomId, true);
       const fullContent = await this.aiResponseService.generate(
         history,
-        basePrompt,
+        systemPrompt,
         (chunk) => this.messageStreamService.streamChunk(chatroomId, chunk),
+        voluntary ? { voluntary: true } : undefined,
       );
 
       this.messageStreamService.setTyping(chatroomId, false);
@@ -115,6 +129,7 @@ export class MessagesService {
         e,
       );
       this.messageStreamService.setTyping(chatroomId, false);
+      await this.chatroomStateRepository.resetDelay(BigInt(chatroomId));
     }
   }
 

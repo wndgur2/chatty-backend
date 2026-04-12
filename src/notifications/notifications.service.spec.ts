@@ -86,9 +86,9 @@ describe('NotificationsService', () => {
 
     const result = await service.sendTestNotificationByChatroomId('7');
 
-    expect(mockNotificationsRepository.findChatroomOwnerInfoById).toHaveBeenCalledWith(
-      7n,
-    );
+    expect(
+      mockNotificationsRepository.findChatroomOwnerInfoById,
+    ).toHaveBeenCalledWith(7n);
     expect(mockFcmPushService.sendTestNotificationToUser).toHaveBeenCalledWith({
       userId: 11n,
       chatroomId: '7',
@@ -102,11 +102,15 @@ describe('NotificationsService', () => {
   });
 
   it('should throw NotFoundException when chatroom does not exist', async () => {
-    mockNotificationsRepository.findChatroomOwnerInfoById.mockResolvedValue(null);
-
-    await expect(service.sendTestNotificationByChatroomId('999')).rejects.toBeInstanceOf(
-      NotFoundException,
+    mockNotificationsRepository.findChatroomOwnerInfoById.mockResolvedValue(
+      null,
     );
-    expect(mockFcmPushService.sendTestNotificationToUser).not.toHaveBeenCalled();
+
+    await expect(
+      service.sendTestNotificationByChatroomId('999'),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(
+      mockFcmPushService.sendTestNotificationToUser,
+    ).not.toHaveBeenCalled();
   });
 });

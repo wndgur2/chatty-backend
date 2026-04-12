@@ -7,6 +7,7 @@ This document outlines the RESTful API endpoints for the "Chatty" application ba
 ## 0. Authentication
 
 All `/api/**` endpoints require a bearer token except:
+
 - `GET /`
 - `POST /api/auth/login`
 
@@ -128,6 +129,7 @@ Update a chatroom's configuration such as its base prompt or AI profile image.
 - **Parameters:**
   - `chatroomId` (path parameter): The ID of the chatroom.
 - **Request Body:** `multipart/form-data`
+  - `name` (string, optional): The update name for the AI.
   - `basePrompt` (string, optional): The updated base prompt for the AI.
   - `profileImage` (file/blob, optional): The updated profile image file for the AI.
 - **Response:** `200 OK`
@@ -307,6 +309,7 @@ Register a user's device for receiving FCM push notifications (for voluntary AI 
 ### 5.2 Client -> Server Events
 
 #### `joinRoom`
+
 - **Payload:**
   ```json
   { "chatroomId": 2 }
@@ -317,6 +320,7 @@ Register a user's device for receiving FCM push notifications (for voluntary AI 
   ```
 
 #### `leaveRoom`
+
 - **Payload:**
   ```json
   { "chatroomId": 2 }
@@ -329,18 +333,21 @@ Register a user's device for receiving FCM push notifications (for voluntary AI 
 ### 5.3 Server -> Client Events
 
 #### `ai_typing_state`
+
 - **Payload:**
   ```json
   { "chatroomId": 2, "isTyping": true }
   ```
 
 #### `ai_message_chunk`
+
 - **Payload:**
   ```json
   { "chatroomId": 2, "chunk": "partial token(s)" }
   ```
 
 #### `ai_message_complete`
+
 - **Payload:**
   ```json
   { "chatroomId": 2, "content": "final message", "messageId": 123 }
