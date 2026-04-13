@@ -20,7 +20,7 @@ export const STABLE_VOLUNTARY_ALIGNMENT =
  * Leading system text for normal (user-triggered) replies only—not used for voluntary follow-ups.
  * Nudges casual, human-like tone and shorter answers without using output token caps.
  */
-export const NORMAL_CHAT_BASE_SYSTEM = 'You are texting in a chatroom.';
+export const NORMAL_CHAT_BASE_SYSTEM = 'You are texting in a casual chatroom.';
 
 /**
  * Default decoding for normal (user-triggered) chat streaming.
