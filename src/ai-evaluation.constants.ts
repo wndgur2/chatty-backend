@@ -113,10 +113,6 @@ export function buildVoluntaryEvaluationPrompt(
   formattedHistory: string,
   ctx: VoluntaryEvaluationContext,
 ): string {
-  const lastFrom =
-    ctx.lastSender === 'user'
-      ? 'the user'
-      : 'the assistant (you—the AI in this chat)';
   const elapsed = formatElapsedForEvaluation(ctx.secondsSinceLastMessage);
 
   return [
@@ -127,9 +123,7 @@ export function buildVoluntaryEvaluationPrompt(
     '',
     'REPLY with "YES" if user requested reminder, alert, or notification.',
     '',
-    'Context:',
-    `- Last message was from ${lastFrom}.`,
-    `- Time since that message: ${elapsed}.`,
+    `Time since last message: ${elapsed}.`,
     '',
     'History:',
     formattedHistory,
