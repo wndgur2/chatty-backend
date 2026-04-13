@@ -135,18 +135,10 @@ export class FcmPushService implements OnModuleInit {
       return;
     }
 
-    const imageUrl =
-      this.configService.get<string>('PUBLIC_ORIGIN') + '/favicon.ico';
-
     const message = {
       tokens,
       data: payload.data,
       android: { priority: 'high' as const },
-      notification: {
-        title: payload.title,
-        body: payload.body,
-        imageUrl,
-      },
     };
 
     this.logger.debug(`Sending FCM message to user ${userId}`);
