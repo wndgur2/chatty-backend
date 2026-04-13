@@ -58,3 +58,80 @@ export function buildVoluntaryLastInstruction(
     prior,
   ].join('\n');
 }
+
+/** Inputs for judging whether to send one voluntary follow-up (background evaluator). */
+export type VoluntaryEvaluationContext = {
+  /** Seconds since the most recent message in the thread (non-negative). */
+  secondsSinceLastMessage: number;
+  /** Who sent that most recent message. */
+  lastSender: 'user' | 'ai';
+};
+
+/**
+ * Original voluntary YES/NO evaluator system text (before natural-texting wording and time/sender context).
+ * Kept for reference and comparison; {@link buildVoluntaryEvaluationPrompt} is what the app uses.
+ */
+export function buildLegacyVoluntaryEvaluationPrompt(
+  basePrompt: string,
+  formattedHistory: string,
+): string {
+  return [
+    basePrompt.trim(),
+    '',
+    'Based on the conversation history below, should the assistant send additional message?',
+    'Reply ONLY with "YES" or "NO". Do not provide any other explanation.',
+    '',
+    'REPLY with "YES" if user requested reminder, alert, or notification.',
+    '',
+    'History:',
+    formattedHistory,
+  ].join('\n');
+}
+
+/** Human-readable elapsed time for the small eval model (integer units, no sub-second noise). */
+export function formatElapsedForEvaluation(totalSeconds: number): string {
+  const s = Math.max(0, Math.floor(totalSeconds));
+  if (s < 60) {
+    return `${s} second(s)`;
+  }
+  const m = Math.floor(s / 60);
+  if (m < 60) {
+    const rem = s % 60;
+    return rem === 0 ? `${m} minute(s)` : `${m} minute(s) and ${rem} second(s)`;
+  }
+  const h = Math.floor(m / 60);
+  const remM = m % 60;
+  return remM === 0 ? `${h} hour(s)` : `${h} hour(s) and ${remM} minute(s)`;
+}
+
+/**
+ * Full system message for the voluntary YES/NO evaluator (natural texting with AI).
+ * `formattedHistory` should be lines like `USER:` / `ASSISTANT:` oldest-to-newest.
+ */
+export function buildVoluntaryEvaluationPrompt(
+  basePrompt: string,
+  formattedHistory: string,
+  ctx: VoluntaryEvaluationContext,
+): string {
+  const lastFrom =
+    ctx.lastSender === 'user'
+      ? 'the user'
+      : 'the assistant (you—the AI in this chat)';
+  const elapsed = formatElapsedForEvaluation(ctx.secondsSinceLastMessage);
+
+  return [
+    basePrompt.trim(),
+    '',
+    'Based on the conversation history below, should the assistant send additional message?',
+    'Reply ONLY with "YES" or "NO". Do not provide any other explanation.',
+    '',
+    'REPLY with "YES" if user requested reminder, alert, or notification.',
+    '',
+    'Context:',
+    `- Last message was from ${lastFrom}.`,
+    `- Time since that message: ${elapsed}.`,
+    '',
+    'History:',
+    formattedHistory,
+  ].join('\n');
+}

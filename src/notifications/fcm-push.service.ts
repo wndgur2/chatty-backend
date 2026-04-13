@@ -149,9 +149,7 @@ export class FcmPushService implements OnModuleInit {
       },
     };
 
-    this.logger.debug(
-      `Sending FCM message to user ${userId}: ${JSON.stringify(message)}`,
-    );
+    this.logger.debug(`Sending FCM message to user ${userId}`);
 
     try {
       const result = await this.messaging.sendEachForMulticast(message);

@@ -44,12 +44,24 @@ describe('OllamaService', () => {
     const mockChat = (service as any).ollama.chat as jest.Mock;
     mockChat.mockResolvedValue({ message: { content: 'YES' } });
 
+    const evalCtx = {
+      secondsSinceLastMessage: 45,
+      lastSender: 'user' as const,
+    };
+
     const result = await service.evaluateToAnswer(
       [{ role: 'user', content: 'hello where is AI?' }],
       'You are an AI.',
+      evalCtx,
     );
 
     expect(mockChat).toHaveBeenCalled();
+    expect(mockChat.mock.calls[0][0].messages[0].content).toEqual(
+      expect.stringContaining('45 second(s)'),
+    );
+    expect(mockChat.mock.calls[0][0].messages[0].content).toEqual(
+      expect.stringContaining('Last message was from the user'),
+    );
     expect(result).toBe(true);
   });
 
@@ -57,11 +69,23 @@ describe('OllamaService', () => {
     const mockChat = (service as any).ollama.chat as jest.Mock;
     mockChat.mockResolvedValue({ message: { content: 'NO' } });
 
+    const evalCtx = {
+      secondsSinceLastMessage: 12,
+      lastSender: 'ai' as const,
+    };
+
     const result = await service.evaluateToAnswer(
       [{ role: 'user', content: 'just chatting with a friend.' }],
       'You are an AI.',
+      evalCtx,
     );
 
+    expect(mockChat.mock.calls[0][0].messages[0].content).toEqual(
+      expect.stringContaining('12 second(s)'),
+    );
+    expect(mockChat.mock.calls[0][0].messages[0].content).toEqual(
+      expect.stringContaining('the assistant (you—the AI in this chat)'),
+    );
     expect(result).toBe(false);
   });
 
@@ -72,12 +96,13 @@ describe('OllamaService', () => {
 
     await service.streamChatResponse([], 'system prompt', { voluntary: true });
 
-    expect(mockChat).toHaveBeenCalledWith({
-      model: 'qwen2.5:7b',
-      messages: [{ role: 'system', content: 'system prompt' }],
-      stream: true,
-      options: { ...VOLUNTARY_OLLAMA_OPTIONS },
-    });
+    expect(mockChat).toHaveBeenCalledWith(
+      expect.objectContaining({
+        messages: [{ role: 'system', content: 'system prompt' }],
+        stream: true,
+        options: { ...VOLUNTARY_OLLAMA_OPTIONS },
+      }),
+    );
   });
 
   it('should pass default chat decoding options when voluntary is unset', async () => {
@@ -87,11 +112,12 @@ describe('OllamaService', () => {
 
     await service.streamChatResponse([], 'system prompt');
 
-    expect(mockChat).toHaveBeenCalledWith({
-      model: 'qwen2.5:7b',
-      messages: [{ role: 'system', content: 'system prompt' }],
-      stream: true,
-      options: { ...DEFAULT_CHAT_OLLAMA_OPTIONS },
-    });
+    expect(mockChat).toHaveBeenCalledWith(
+      expect.objectContaining({
+        messages: [{ role: 'system', content: 'system prompt' }],
+        stream: true,
+        options: { ...DEFAULT_CHAT_OLLAMA_OPTIONS },
+      }),
+    );
   });
 });

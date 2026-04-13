@@ -60,13 +60,15 @@ describe('TasksService', () => {
         update: chatroomUpdate,
       },
       message: {
-        findMany: jest.fn().mockResolvedValue([
-          { sender: 'ai' as const },
-          { sender: 'ai' as const },
-          { sender: 'ai' as const },
-          { sender: 'ai' as const },
-          { sender: 'user' as const },
-        ]),
+        findMany: jest
+          .fn()
+          .mockResolvedValue([
+            { sender: 'ai' as const },
+            { sender: 'ai' as const },
+            { sender: 'ai' as const },
+            { sender: 'ai' as const },
+            { sender: 'user' as const },
+          ]),
       },
     };
 
@@ -84,13 +86,16 @@ describe('TasksService', () => {
 
     expect(evaluateToAnswer).not.toHaveBeenCalled();
     expect(processBackgroundMessage).not.toHaveBeenCalled();
-    const backoffCall = chatroomUpdate.mock.calls.find(
-      (call) =>
-        call[0]?.data?.currentDelaySeconds ===
-        (60 * 2),
+
+    type RoomUpdateArg = {
+      data?: { currentDelaySeconds?: number; nextEvaluationTime?: Date };
+    };
+    const updateCalls = chatroomUpdate.mock.calls as [RoomUpdateArg][];
+    const backoffCall = updateCalls.find(
+      (call) => call[0]?.data?.currentDelaySeconds === 60 * 2,
     );
     expect(backoffCall).toBeDefined();
-    expect(backoffCall?.[0]?.data?.nextEvaluationTime).toBeInstanceOf(Date);
+    expect(backoffCall?.[0].data?.nextEvaluationTime).toBeInstanceOf(Date);
   });
 
   it('still evaluates when voluntary streak is below cap', async () => {
@@ -110,9 +115,18 @@ describe('TasksService', () => {
       },
       message: {
         findMany: jest.fn().mockResolvedValue([
-          { sender: 'ai' as const },
-          { sender: 'ai' as const },
-          { sender: 'user' as const },
+          {
+            sender: 'ai' as const,
+            createdAt: new Date('2026-01-01T00:00:00Z'),
+          },
+          {
+            sender: 'ai' as const,
+            createdAt: new Date('2026-01-01T00:00:00Z'),
+          },
+          {
+            sender: 'user' as const,
+            createdAt: new Date('2026-01-01T00:00:00Z'),
+          },
         ]),
       },
     };

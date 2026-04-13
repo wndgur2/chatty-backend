@@ -4,6 +4,7 @@ import {
   AI_BACKGROUND_EVALUATION_CRON,
   INITIAL_AI_EVALUATION_DELAY_SECONDS,
   MAX_VOLUNTARY_MESSAGES_IN_A_ROW,
+  type VoluntaryEvaluationContext,
 } from '../ai-evaluation.constants';
 import { PrismaService } from '../prisma/prisma.service';
 import { OllamaService } from '../ollama/ollama.service';
@@ -79,12 +80,23 @@ export class TasksService {
 
         const history = toChatHistory(historyRaw);
 
+        const newest = historyRaw[0];
+        const secondsSinceLastMessage = Math.max(
+          0,
+          (now.getTime() - newest.createdAt.getTime()) / 1000,
+        );
+        const evalCtx: VoluntaryEvaluationContext = {
+          secondsSinceLastMessage,
+          lastSender: newest.sender === 'user' ? 'user' : 'ai',
+        };
+
         const basePrompt = room.basePrompt || 'You are a helpful assistant.';
 
         try {
           const shouldAnswer = await this.ollama.evaluateToAnswer(
             history,
             basePrompt,
+            evalCtx,
           );
 
           if (shouldAnswer) {

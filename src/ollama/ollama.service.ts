@@ -2,7 +2,9 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Ollama } from 'ollama';
 import {
+  buildVoluntaryEvaluationPrompt,
   DEFAULT_CHAT_OLLAMA_OPTIONS,
+  type VoluntaryEvaluationContext,
   VOLUNTARY_OLLAMA_OPTIONS,
 } from '../ai-evaluation.constants';
 
@@ -22,11 +24,11 @@ export class OllamaService {
   constructor(private readonly configService: ConfigService) {
     this.chatModel = this.configService.get<string>(
       'OLLAMA_CHAT_MODEL',
-      'qwen2.5:7b',
+      'hf.co/TrevorJS/gemma-4-E2B-it-uncensored-GGUF:Q4_K_M',
     );
     this.evalModel = this.configService.get<string>(
       'OLLAMA_EVAL_MODEL',
-      'qwen2.5:1.5b',
+      'hf.co/TrevorJS/gemma-4-E2B-it-uncensored-GGUF:Q4_K_M',
     );
     this.ollama = new Ollama({
       host: this.configService.get<string>(
@@ -39,6 +41,7 @@ export class OllamaService {
   async evaluateToAnswer(
     history: ChatMessage[],
     basePrompt: string,
+    ctx: VoluntaryEvaluationContext,
   ): Promise<boolean> {
     try {
       const formattedHistory = history
@@ -46,20 +49,15 @@ export class OllamaService {
         .map((msg) => `${msg.role.toUpperCase()}: ${msg.content}`)
         .join('\n');
 
-      const evaluationUserPrompt = `
-      ${basePrompt}\n
-      Based on the conversation history below, should the assistant send additional message?
-      Reply ONLY with "YES" or "NO". Do not provide any other explanation.
-
-      REPLY with "YES" if user requested reminder, alert, or notification.
-      
-      History:
-      ${formattedHistory}
-      `;
+      const evaluationPrompt = buildVoluntaryEvaluationPrompt(
+        basePrompt,
+        formattedHistory,
+        ctx,
+      );
 
       const response = await this.ollama.chat({
         model: this.evalModel,
-        messages: [{ role: 'system', content: evaluationUserPrompt.trim() }],
+        messages: [{ role: 'system', content: evaluationPrompt }],
         stream: false,
       });
 
